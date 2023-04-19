@@ -416,17 +416,15 @@ Summary:    Translation source for sociald
 %setup -q -n %{name}-%{version}
 
 %build
-%%qmake5 \
-    "CONFIG+=github"
-#%%qmake5 \
-#    "CONFIG+=dropbox" \
-#    "CONFIG+=facebook" \
-#    "CONFIG+=google" \
-#    "CONFIG+=onedrive" \
-#    "CONFIG+=twitter" \
-#    "CONFIG+=vk" \
-#    "CONFIG+=knowncontacts" \
-#    "CONFIG+=calendar"
+%qmake5 \
+    "CONFIG+=dropbox" \
+    "CONFIG+=facebook" \
+    "CONFIG+=google" \
+    "CONFIG+=onedrive" \
+    "CONFIG+=twitter" \
+    "CONFIG+=vk" \
+    "CONFIG+=knowncontacts" \
+    "CONFIG+=calendar"
 make %{_smp_mflags}
 
 %pre

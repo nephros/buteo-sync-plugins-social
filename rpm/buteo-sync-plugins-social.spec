@@ -34,16 +34,19 @@ A Buteo plugin which provides data synchronization with various social services.
 
 %files
 %defattr(-,root,root,-)
-%{_libdir}/buteo-plugins-qt5/oopp/libsociald-client.so
-%config %{_sysconfdir}/buteo/profiles/client/sociald.xml
-%config %{_sysconfdir}/buteo/profiles/sync/sociald.All.xml
-%{_libdir}/libsyncpluginscommon.so.*
-%exclude %{_libdir}/libsyncpluginscommon.so
-%license COPYING
+#%%{_libdir}/buteo-plugins-qt5/oopp/libsociald-client.so
+#%%config %%{_sysconfdir}/buteo/profiles/client/sociald.xml
+#%%config %%{_sysconfdir}/buteo/profiles/sync/sociald.All.xml
+#%%{_libdir}/libsyncpluginscommon.so.*
+#%%exclude %%{_libdir}/libsyncpluginscommon.so
+#%%license COPYING
 
 %package github
 Summary:    Provides synchronisation with GitHub
-Requires: %{name} = %{version}-%{release}
+#Requires: %%{name} = %%{version}-%%{release}
+#Requires: %%{name} = %%{version}
+# package version in 4.4.0.72:
+Requires: %{name} = 0.4.17-1.14.2.jolla
 
 %description github
 %{summary}.
@@ -53,7 +56,7 @@ Requires: %{name} = %{version}-%{release}
 %{_libdir}/buteo-plugins-qt5/oopp/libgithub-notifications-client.so
 %config %{_sysconfdir}/buteo/profiles/client/github-notifications.xml
 %config %{_sysconfdir}/buteo/profiles/sync/github.Notifications.xml
-
+%{_datadir}/lipstick/notificationcategories/x-nemo.social.github.notification.conf
 
 %pre github
 # notifications
@@ -86,7 +89,13 @@ done
 %install
 rm -rf %{buildroot}
 %qmake5_install
-
+# delete files for main package so it can be not packaged
+rm -f %{buildroot}%{_libdir}/buteo-plugins-qt5/oopp/libsociald-client.so
+rm -f %{buildroot}%{_sysconfdir}/buteo/profiles/client/sociald.xml
+rm -f %{buildroot}%{_sysconfdir}/buteo/profiles/sync/sociald.All.xml
+rm -f %{buildroot}%{_libdir}/libsyncpluginscommon.so.*
+rm -f %{buildroot}%{_libdir}/libsyncpluginscommon.so
+#
 %post
 /sbin/ldconfig || :
 systemctl-user try-restart msyncd.service || :
