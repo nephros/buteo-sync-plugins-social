@@ -71,7 +71,7 @@ systemctl-user try-restart msyncd.service || :
 %setup -q -n %{name}-%{version}
 
 %build
-%%qmake5 \
+%qmake5 \
     "CONFIG+=github"
 make %{_smp_mflags}
 
