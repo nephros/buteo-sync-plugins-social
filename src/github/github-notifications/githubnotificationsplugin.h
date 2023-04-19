@@ -19,8 +19,8 @@
  **
  ****************************************************************************/
 
-#ifndef FACEBOOKNOTIFICATIONSPLUGIN_H
-#define FACEBOOKNOTIFICATIONSPLUGIN_H
+#ifndef GITHUBNOTIFICATIONSPLUGIN_H
+#define GITHUBNOTIFICATIONSPLUGIN_H
 
 #include "socialdbuteoplugin.h"
 
@@ -44,4 +44,4 @@ extern "C" GithubNotificationsPlugin* createPlugin(const QString& pluginName,
 
 extern "C" void destroyPlugin(GithubNotificationsPlugin* client);
 
-#endif // FACEBOOKNOTIFICATIONSPLUGIN_H
+#endif // GITHUBNOTIFICATIONSPLUGIN_H

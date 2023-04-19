@@ -64,7 +64,7 @@ void GithubNotificationSyncAdaptor::finalize(int accountId)
 {
     Q_UNUSED(accountId)
     if (syncAborted()) {
-        SOCIALD_LOG_INFO("sync aborted, won't commit database changes");
+        qCInfo(lcSocialPlugin) << "sync aborted, won't commit database changes";
     } else {
         m_db.purgeOldNotifications(OLD_NOTIFICATION_LIMIT_IN_DAYS);
         m_db.sync();
@@ -122,7 +122,7 @@ void GithubNotificationSyncAdaptor::requestNotifications(int accountId, const QS
         incrementSemaphore(accountId);
         setupReplyTimeout(accountId, reply);
     } else {
-        SOCIALD_LOG_ERROR("unable to request notifications from Github account with id" << accountId);
+        qCWarning(lcSocialPlugin) << "unable to request notifications from Github account with id" << accountId;
     }
 }
 
@@ -156,11 +156,11 @@ void GithubNotificationSyncAdaptor::finishedHandler()
 
             if (createdTime.daysTo(QDateTime::currentDateTime()) > sinceSpan
                     && updatedTime.daysTo(QDateTime::currentDateTime()) > sinceSpan) {
-                SOCIALD_LOG_DEBUG("notification for account" << accountId <<
+                qCDebug(lcSocialPlugin) << "notification for account" << accountId <<
                                   "is more than" << sinceSpan << "days old:\n" <<
                                   createdTime.toString(Qt::ISODate) << "-" <<
                                   updatedTime.toString(Qt::ISODate) << "-" <<
-                                  object.value(QLatin1String("title")).toString());
+                                  object.value(QLatin1String("title")).toString();
                 seenOldNotification = true;
                 needNextPage = false;
                 continue;
@@ -212,8 +212,8 @@ void GithubNotificationSyncAdaptor::finishedHandler()
         }
     } else {
         // error occurred during request.
-        SOCIALD_LOG_ERROR("unable to parse notification data from request with account" << accountId <<
-                          "got:" << QString::fromLatin1(replyData.constData()));
+        qCWarning(lcSocialPlugin) << "unable to parse notification data from request with account" << accountId <<
+                          "got:" << QString::fromLatin1(replyData.constData());
     }
 
     // we're finished this request.  Decrement our busy semaphore.
@@ -223,9 +223,9 @@ void GithubNotificationSyncAdaptor::finishedHandler()
 QDateTime GithubNotificationSyncAdaptor::lastSuccessfulSyncTime(int accountId)
 {
     QDateTime result;
-    QString settingsFileName = QString::fromLatin1("%1/%2/fbnotif.ini")
-            .arg(QString::fromLatin1(PRIVILEGED_DATA_DIR))
-            .arg(QString::fromLatin1(SYNC_DATABASE_DIR));
+    QString settingsFileName = QString::fromLatin1("%1/%2/ghnotif.ini")
+            .arg(PRIVILEGED_DATA_DIR)
+            .arg(SYNC_DATABASE_DIR);
     QSettings settingsFile(settingsFileName, QSettings::IniFormat);
     uint timestamp = settingsFile.value(QString::fromLatin1("%1-last-successful-sync-time").arg(accountId)).toUInt();
     if (timestamp > 0) {
@@ -237,9 +237,9 @@ QDateTime GithubNotificationSyncAdaptor::lastSuccessfulSyncTime(int accountId)
 void GithubNotificationSyncAdaptor::setLastSuccessfulSyncTime(int accountId)
 {
     QDateTime currentTime = QDateTime::currentDateTime().toUTC();
-    QString settingsFileName = QString::fromLatin1("%1/%2/fbnotif.ini")
-            .arg(QString::fromLatin1(PRIVILEGED_DATA_DIR))
-            .arg(QString::fromLatin1(SYNC_DATABASE_DIR));
+    QString settingsFileName = QString::fromLatin1("%1/%2/ghnotif.ini")
+            .arg(PRIVILEGED_DATA_DIR)
+            .arg(SYNC_DATABASE_DIR);
     QSettings settingsFile(settingsFileName, QSettings::IniFormat);
     settingsFile.setValue(QString::fromLatin1("%1-last-successful-sync-time").arg(accountId),
                           QVariant::fromValue<uint>(currentTime.toTime_t()));

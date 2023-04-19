@@ -7,7 +7,7 @@ sociald.depends = common
 
 CONFIG(github): {
     SUBDIRS += github
-    google.depends = common
+    github.depends = common
 }
 
 CONFIG(google): {
