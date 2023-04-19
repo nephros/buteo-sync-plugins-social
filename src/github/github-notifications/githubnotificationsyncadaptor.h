@@ -19,8 +19,8 @@
  **
  ****************************************************************************/
 
-#ifndef FACEBOOKNOTIFICATIONSYNCADAPTOR_H
-#define FACEBOOKNOTIFICATIONSYNCADAPTOR_H
+#ifndef GITHUBNOTIFICATIONSYNCADAPTOR_H
+#define GITHUBNOTIFICATIONSYNCADAPTOR_H
 
 #include "githubdatatypesyncadaptor.h"
 #include <socialcache/githubnotificationsdatabase.h>
@@ -58,4 +58,4 @@ private:
     SocialImagesDatabase m_imageCacheDb;
 };
 
-#endif // FACEBOOKNOTIFICATIONSYNCADAPTOR_H
+#endif // GITHUBNOTIFICATIONSYNCADAPTOR_H
