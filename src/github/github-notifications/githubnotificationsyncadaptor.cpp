@@ -223,9 +223,9 @@ void GithubNotificationSyncAdaptor::finishedHandler()
 QDateTime GithubNotificationSyncAdaptor::lastSuccessfulSyncTime(int accountId)
 {
     QDateTime result;
-    QString settingsFileName = QString::fromLatin1("%1/%2/fbnotif.ini")
-            .arg(QString::fromLatin1(PRIVILEGED_DATA_DIR))
-            .arg(QString::fromLatin1(SYNC_DATABASE_DIR));
+    QString settingsFileName = QString::fromLatin1("%1/%2/ghnotif.ini")
+            .arg(PRIVILEGED_DATA_DIR)
+            .arg(SYNC_DATABASE_DIR);
     QSettings settingsFile(settingsFileName, QSettings::IniFormat);
     uint timestamp = settingsFile.value(QString::fromLatin1("%1-last-successful-sync-time").arg(accountId)).toUInt();
     if (timestamp > 0) {
@@ -237,9 +237,9 @@ QDateTime GithubNotificationSyncAdaptor::lastSuccessfulSyncTime(int accountId)
 void GithubNotificationSyncAdaptor::setLastSuccessfulSyncTime(int accountId)
 {
     QDateTime currentTime = QDateTime::currentDateTime().toUTC();
-    QString settingsFileName = QString::fromLatin1("%1/%2/fbnotif.ini")
-            .arg(QString::fromLatin1(PRIVILEGED_DATA_DIR))
-            .arg(QString::fromLatin1(SYNC_DATABASE_DIR));
+    QString settingsFileName = QString::fromLatin1("%1/%2/ghnotif.ini")
+            .arg(PRIVILEGED_DATA_DIR)
+            .arg(SYNC_DATABASE_DIR);
     QSettings settingsFile(settingsFileName, QSettings::IniFormat);
     settingsFile.setValue(QString::fromLatin1("%1-last-successful-sync-time").arg(accountId),
                           QVariant::fromValue<uint>(currentTime.toTime_t()));
