@@ -53,7 +53,7 @@ Requires: %{name} = %{version}-%{release}
 %{_libdir}/buteo-plugins-qt5/oopp/libgithub-notifications-client.so
 %config %{_sysconfdir}/buteo/profiles/client/github-notifications.xml
 %config %{_sysconfdir}/buteo/profiles/sync/github.Notifications.xml
-
+%{_datadir}/lipstick/notificationcategories/x-nemo.social.github.notification.conf
 
 %pre github
 # notifications
