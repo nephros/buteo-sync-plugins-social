@@ -77,6 +77,7 @@ bool SocialdPlugin::startSync()
         startSyncParams.append(QStringLiteral("%1.%2").arg(m_serviceName, m_dataType));
     } else {
         // trigger sync of all known data types with all accounts.
+        startSyncParams << "github.Notifications";
         startSyncParams << "google.Calendars";
         startSyncParams << "google.Contacts";
         startSyncParams << "facebook.Calendars";

@@ -5,6 +5,11 @@ SUBDIRS = \
 
 sociald.depends = common
 
+CONFIG(github): {
+    SUBDIRS += github
+    google.depends = common
+}
+
 CONFIG(google): {
     SUBDIRS += google
     google.depends = common
