@@ -24,7 +24,9 @@
 
 #include "socialdbuteoplugin.h"
 
-class SOCIALDBUTEOPLUGIN_EXPORT GithubNotificationsPlugin : public SocialdButeoPlugin
+#include <buteosyncfw5/SyncPluginLoader.h>
+
+class Q_DECL_EXPORT GithubNotificationsPlugin : public SocialdButeoPlugin
 {
     Q_OBJECT
 
@@ -38,10 +40,16 @@ protected:
     SocialNetworkSyncAdaptor *createSocialNetworkSyncAdaptor();
 };
 
-extern "C" GithubNotificationsPlugin* createPlugin(const QString& pluginName,
-                                                const Buteo::SyncProfile& profile,
-                                                Buteo::PluginCbInterface *cbInterface);
+class GithubNotificationsPluginLoader : public Buteo::SyncPluginLoader
+{
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID "org.sailfishos.plugins.sync.GithubNotificationsPluginLoader")
+    Q_INTERFACES(Buteo::SyncPluginLoader)
 
-extern "C" void destroyPlugin(GithubNotificationsPlugin* client);
+public:
+    Buteo::ClientPlugin* createClientPlugin(const QString& pluginName,
+                                            const Buteo::SyncProfile& profile,
+                                            Buteo::PluginCbInterface* cbInterface) override;
+};
 
 #endif // GITHUBNOTIFICATIONSPLUGIN_H
