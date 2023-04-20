@@ -40,6 +40,7 @@ protected:
     SocialNetworkSyncAdaptor *createSocialNetworkSyncAdaptor();
 };
 
+
 class GithubNotificationsPluginLoader : public Buteo::SyncPluginLoader
 {
     Q_OBJECT

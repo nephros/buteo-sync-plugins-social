@@ -34,13 +34,13 @@
 // libaccounts-qt5
 #include <Accounts/Manager>
 #include <Accounts/Account>
-#include <Accounts/Service>
 #include <Accounts/AccountService>
+#include <Accounts/Service>
 
-//libsignon-qt: SignOn::NoUserInteractionPolicy
-#include <SignOn/Identity>
+//libsignon-qt
 #include <SignOn/AuthSession>
 #include <SignOn/SessionData>
+#include <SignOn/Identity>
 
 GithubDataTypeSyncAdaptor::GithubDataTypeSyncAdaptor(SocialNetworkSyncAdaptor::DataType dataType, QObject *parent)
     : SocialNetworkSyncAdaptor("github", dataType, 0, parent), m_triedLoading(false)
@@ -61,7 +61,7 @@ void GithubDataTypeSyncAdaptor::sync(const QString &dataTypeString, int accountI
     }
 
     if (clientId().isEmpty()) {
-        qCWarning(lcSocialPlugin) << "client id couldn't be retrieved for Github account" << accountId;
+        qCWarning(lcSocialPlugin) << "clientId could not be retrieved for GitHub account" << accountId;
         setStatus(SocialNetworkSyncAdaptor::Error);
         return;
     }
@@ -77,6 +77,7 @@ void GithubDataTypeSyncAdaptor::updateDataForAccount(int accountId)
     if (!account) {
         qCWarning(lcSocialPlugin) << "existing account with id" << accountId << "couldn't be retrieved";
         setStatus(SocialNetworkSyncAdaptor::Error);
+        decrementSemaphore(accountId);
         return;
     }
 
@@ -85,6 +86,7 @@ void GithubDataTypeSyncAdaptor::updateDataForAccount(int accountId)
     signIn(account);
 }
 
+
 void GithubDataTypeSyncAdaptor::errorHandler(QNetworkReply::NetworkError err)
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
@@ -92,7 +94,9 @@ void GithubDataTypeSyncAdaptor::errorHandler(QNetworkReply::NetworkError err)
     int accountId = reply->property("accountId").toInt();
 
     qCWarning(lcSocialPlugin) << SocialNetworkSyncAdaptor::dataTypeName(m_dataType) <<
-                      "request with account" << accountId << "experienced error:" << err;
+                      "request with account" << accountId <<
+                      "experienced error:" << err <<
+                      "HTTP:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     // set "isError" on the reply so that adapters know to ignore the result in the finished() handler
     reply->setProperty("isError", QVariant::fromValue<bool>(true));
     // Note: not all errors are "unrecoverable" errors, so we don't change the status here.
@@ -138,11 +142,6 @@ QString GithubDataTypeSyncAdaptor::clientId()
     return m_clientId;
 }
 
-QString GithubDataTypeSyncAdaptor::graphAPI(const QString &request) const
-{
-    return m_graphAPI + request;
-}
-
 void GithubDataTypeSyncAdaptor::loadClientId()
 {
     m_triedLoading = true;
@@ -159,7 +158,7 @@ void GithubDataTypeSyncAdaptor::loadClientId()
 
 void GithubDataTypeSyncAdaptor::setCredentialsNeedUpdate(Accounts::Account *account)
 {
-    qWarning() << "sociald:Github: setting CredentialsNeedUpdate to true for account:" << account->id();
+    qCInfo(lcSocialPlugin) << "sociald:Github: setting CredentialsNeedUpdate to true for account:" << account->id();
     Accounts::Service srv(m_accountManager->service(syncServiceName()));
     account->selectService(srv);
     account->setValue(QStringLiteral("CredentialsNeedUpdate"), QVariant::fromValue<bool>(true));
@@ -170,7 +169,7 @@ void GithubDataTypeSyncAdaptor::setCredentialsNeedUpdate(Accounts::Account *acco
 
 void GithubDataTypeSyncAdaptor::signIn(Accounts::Account *account)
 {
-    // Fetch consumer key and secret from keyprovider
+    // Fetch clientId from keyprovider
     int accountId = account->id();
     if (!checkAccount(account) || clientId().isEmpty()) {
         decrementSemaphore(accountId);
@@ -182,7 +181,7 @@ void GithubDataTypeSyncAdaptor::signIn(Accounts::Account *account)
     account->selectService(srv);
     SignOn::Identity *identity = account->credentialsId() > 0 ? SignOn::Identity::existingIdentity(account->credentialsId()) : 0;
     if (!identity) {
-        qCWarning(lcSocialPlugin) << "account" << accountId << "has no valid credentials, cannot sign in";
+        qCWarning(lcSocialPlugin) << "error: account has no valid credentials, cannot sign in:" << accountId;
         decrementSemaphore(accountId);
         return;
     }
@@ -192,7 +191,7 @@ void GithubDataTypeSyncAdaptor::signIn(Accounts::Account *account)
     QString mechanism = accSrv.authData().mechanism();
     SignOn::AuthSession *session = identity->createSession(method);
     if (!session) {
-        qCWarning(lcSocialPlugin) << "could not create signon session for account" << accountId;
+        qCWarning(lcSocialPlugin) << "error: could not create signon session for account:" << accountId;
         identity->deleteLater();
         decrementSemaphore(accountId);
         return;
@@ -221,7 +220,7 @@ void GithubDataTypeSyncAdaptor::signOnError(const SignOn::Error &error)
     SignOn::Identity *identity = session->property("identity").value<SignOn::Identity*>();
     int accountId = account->id();
     qCWarning(lcSocialPlugin) << "credentials for account with id" << accountId <<
-                      "couldn't be retrieved:" << error.type() << error.message();
+                      "couldn't be retrieved:" << error.type() << "," << error.message();
 
     // if the error is because credentials have expired, we
     // set the CredentialsNeedUpdate key.
@@ -251,13 +250,12 @@ void GithubDataTypeSyncAdaptor::signOnResponse(const SignOn::SessionData &respon
     Accounts::Account *account = session->property("account").value<Accounts::Account*>();
     SignOn::Identity *identity = session->property("identity").value<SignOn::Identity*>();
     int accountId = account->id();
+
     if (data.contains(QLatin1String("AccessToken"))) {
         accessToken = data.value(QLatin1String("AccessToken")).toString();
     } else {
-        qCInfo(lcSocialPlugin) << "signon response for account with id" << accountId << "contained no access token";
+        qCInfo(lcSocialPlugin) << "signon response for account with id" << accountId << "contained no oauth token";
     }
-
-    m_graphAPI = account->value(QStringLiteral("graph_api/Host")).toString();
 
     session->disconnect(this);
     identity->destroySession(session);

@@ -23,9 +23,6 @@
 #include "githubnotificationsyncadaptor.h"
 #include "socialnetworksyncadaptor.h"
 
-#include <QTranslator>
-#include <QCoreApplication>
-
 GithubNotificationsPlugin::GithubNotificationsPlugin(const QString& pluginName,
                              const Buteo::SyncProfile& profile,
                              Buteo::PluginCbInterface *callbackInterface)
@@ -33,15 +30,6 @@ GithubNotificationsPlugin::GithubNotificationsPlugin(const QString& pluginName,
                          QStringLiteral("github"),
                          SocialNetworkSyncAdaptor::dataTypeName(SocialNetworkSyncAdaptor::Notifications))
 {
-    QString translationPath("/usr/share/translations/");
-    // QTranslator life-cycle: owned by ButeoSocial and removed by its own destructor
-    QTranslator *engineeringEnglish = new QTranslator(this);
-    engineeringEnglish->load("lipstick-jolla-home-github-notif_eng_en", translationPath);
-    QCoreApplication::instance()->installTranslator(engineeringEnglish);
-
-    QTranslator *translator = new QTranslator(this);
-    translator->load(QLocale(), "lipstick-jolla-home-github-notif", "-", translationPath);
-    QCoreApplication::instance()->installTranslator(translator);
 }
 
 GithubNotificationsPlugin::~GithubNotificationsPlugin()
@@ -53,7 +41,6 @@ SocialNetworkSyncAdaptor *GithubNotificationsPlugin::createSocialNetworkSyncAdap
     return new GithubNotificationSyncAdaptor(this);
 }
 
-
 Buteo::ClientPlugin* GithubNotificationsPluginLoader::createClientPlugin(
         const QString& pluginName,
         const Buteo::SyncProfile& profile,
@@ -61,4 +48,3 @@ Buteo::ClientPlugin* GithubNotificationsPluginLoader::createClientPlugin(
 {
     return new GithubNotificationsPlugin(pluginName, profile, cbInterface);
 }
-

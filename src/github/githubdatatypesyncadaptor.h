@@ -54,8 +54,7 @@ public:
 
 protected:
     QString clientId();
-    QString graphAPI(const QString &request = QString()) const;
-    virtual void updateDataForAccount(int accountIds);
+    virtual void updateDataForAccount(int accountId);
     virtual void beginSync(int accountId, const QString &accessToken) = 0;
 
 protected Q_SLOTS:
@@ -72,7 +71,6 @@ private:
     void signIn(Accounts::Account *account);
     bool m_triedLoading; // Is true if we tried to load (even if we failed)
     QString m_clientId;
-    QString m_graphAPI;
 };
 
 #endif // GITHUBDATATYPESYNCADAPTOR_H

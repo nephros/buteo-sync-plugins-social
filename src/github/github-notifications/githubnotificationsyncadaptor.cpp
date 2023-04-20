@@ -22,6 +22,9 @@
 #include "githubnotificationsyncadaptor.h"
 #include "trace.h"
 
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
 #include <QUrlQuery>
 #include <QDebug>
 
@@ -48,11 +51,6 @@ void GithubNotificationSyncAdaptor::purgeDataForOldAccount(int oldId, SocialNetw
     m_db.removeNotifications(oldId);
     m_db.sync();
     m_db.wait();
-
-    // social media feed UI caches feed images and maintains bindings between
-    // source and cached image in SocialImageDatabase.
-    // purge cached images belonging to this account.
-    purgeCachedImages(&m_imageCacheDb, oldId);
 }
 
 void GithubNotificationSyncAdaptor::beginSync(int accountId, const QString &accessToken)
@@ -62,50 +60,42 @@ void GithubNotificationSyncAdaptor::beginSync(int accountId, const QString &acce
 
 void GithubNotificationSyncAdaptor::finalize(int accountId)
 {
-    Q_UNUSED(accountId)
+    Q_UNUSED(accountId);
     if (syncAborted()) {
-        qCInfo(lcSocialPlugin) << "sync aborted, won't commit database changes";
+        qCDebug(lcSocialPlugin) << "sync aborted, skipping finalize of VK Notifications from account:" << accountId;
     } else {
         m_db.purgeOldNotifications(OLD_NOTIFICATION_LIMIT_IN_DAYS);
+
         m_db.sync();
         m_db.wait();
 
-        // manage image cache. Social media feed UI caches feed images
-        // and maintains bindings between source and cached image in SocialImageDatabase.
-        // purge cached images older than four weeks.
-        purgeExpiredImages(&m_imageCacheDb, accountId);
         setLastSuccessfulSyncTime(accountId);
     }
 }
 
 void GithubNotificationSyncAdaptor::requestNotifications(int accountId, const QString &accessToken, const QString &until, const QString &pagingToken)
 {
-    // continuation requests require until+paging token.
-    // if not set, set "since" to the timestamp value.
-    QList<QPair<QString, QString> > queryItems;
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("include_read")), QString(QLatin1String("true"))));
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("access_token")), accessToken));
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("locale")), QLocale::system().name()));
-    QUrl url(QLatin1String("ihttps://api.github.com/notifications")); // NOTE: According to https://github.com/orgs/community/discussions/13056, not in GraphQL (yet)
-    if (pagingToken.isEmpty()) {
-        QDateTime since = lastSuccessfulSyncTime(accountId);
-        if (!since.isValid()) {
-            int sinceSpan = m_accountSyncProfile
-                          ? m_accountSyncProfile->key(Buteo::KEY_SYNC_SINCE_DAYS_PAST, QStringLiteral("7")).toInt()
-                          : 7;
-            since = QDateTime::currentDateTime().addDays(-1 * sinceSpan).toUTC();
-        }
-        queryItems.append(QPair<QString, QString>(QString(QLatin1String("since")),
-                          QString::number(since.toTime_t())));
-        queryItems.append(QPair<QString, QString>(QString(QLatin1String("limit")), QString::number(NOTIFICATIONS_LIMIT)));
-    } else {
-        queryItems.append(QPair<QString, QString>(QString(QLatin1String("limit")), QString::number(NOTIFICATIONS_LIMIT)));
-        queryItems.append(QPair<QString, QString>(QString(QLatin1String("until")), until));
-        queryItems.append(QPair<QString, QString>(QString(QLatin1String("__paging_token")), pagingToken));
-    }
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("fields")),
-                                              QString(QLatin1String("id,from,to,application,object,created_time,updated_time,title,link"))));
+    // TODO: result paging
+    Q_UNUSED(until);
+    Q_UNUSED(pagingToken);
 
+    QList<QPair<QString, QString> > queryItems;
+    queryItems.append(QPair<QString, QString>(QString(QLatin1String("access_token")), accessToken));
+    queryItems.append(QPair<QString, QString>(QString(QLatin1String("X-GitHub-Api-Version")), QStringLiteral("2022-11-28"))); // API version
+    queryItems.append(QPair<QString, QString>(QString(QLatin1String("accept")), QString(QLatin1String("application/vnd.github+json"))));
+    //queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("false"))));
+    queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("true"))));
+    queryItems.append(QPair<QString, QString>(QString(QLatin1String("participating")), QString(QLatin1String("true"))));
+    QDateTime since = lastSuccessfulSyncTime(accountId);
+    if (!since.isValid()) {
+            int sinceSpan = m_accountSyncProfile
+                    ? m_accountSyncProfile->key(Buteo::KEY_SYNC_SINCE_DAYS_PAST, QStringLiteral("7")).toInt()
+                    : 7;
+            since = QDateTime::currentDateTime().addDays(-1 * sinceSpan).toUTC();
+    }
+    queryItems.append(QPair<QString, QString>(QString(QLatin1String("since")), QString::number(since.toTime_t())));
+
+    QUrl url(QStringLiteral("https://api.github.com/notifications")); // NOTE: According to https://github.com/orgs/community/discussions/13056, not in GraphQL (yet)
     QUrlQuery query(url);
     query.setQueryItems(queryItems);
     url.setQuery(query);
@@ -131,93 +121,31 @@ void GithubNotificationSyncAdaptor::finishedHandler()
     QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
     bool isError = reply->property("isError").toBool();
     int accountId = reply->property("accountId").toInt();
-    QString accessToken = reply->property("accessToken").toString();
     QByteArray replyData = reply->readAll();
     disconnect(reply);
     reply->deleteLater();
     removeReplyTimeout(accountId, reply);
 
     bool ok = false;
-    int sinceSpan = m_accountSyncProfile
-                  ? m_accountSyncProfile->key(Buteo::KEY_SYNC_SINCE_DAYS_PAST, QStringLiteral("7")).toInt()
-                  : 7;
-    QJsonObject parsed = parseJsonObjectReplyData(replyData, &ok);
-    if (!isError && ok && parsed.contains(QLatin1String("data"))) {
-        QJsonArray data = parsed.value(QLatin1String("data")).toArray();
+    QJsonArray data = parseJsonArrayReplyData(replyData, &ok);
 
-        bool needNextPage = false;
-        bool seenOldNotification = false;
+    // https://docs.github.com/en/rest/activity/notifications?apiVersion=2022-11-28
+    if (!isError && ok && data.count() > 0) {
+
         foreach (const QJsonValue &entry, data) {
             QJsonObject object = entry.toObject();
-            QDateTime createdTime = QDateTime::fromString(object.value(QLatin1String("created_time")).toString(), Qt::ISODate);
-            createdTime.setTimeSpec(Qt::UTC);
-            QDateTime updatedTime = QDateTime::fromString(object.value(QLatin1String("updated_time")).toString(), Qt::ISODate);
-            updatedTime.setTimeSpec(Qt::UTC);
-
-            if (createdTime.daysTo(QDateTime::currentDateTime()) > sinceSpan
-                    && updatedTime.daysTo(QDateTime::currentDateTime()) > sinceSpan) {
-                qCDebug(lcSocialPlugin) << "notification for account" << accountId <<
-                                  "is more than" << sinceSpan << "days old:\n" <<
-                                  createdTime.toString(Qt::ISODate) << "-" <<
-                                  updatedTime.toString(Qt::ISODate) << "-" <<
-                                  object.value(QLatin1String("title")).toString();
-                seenOldNotification = true;
-                needNextPage = false;
-                continue;
+            if (!object.isEmpty()) {
+                m_notificationsToAdd.append(NotificationData(accountId, object, profileValues));
+            } else {
+                qCDebug(lcSocialPlugin) << "notification object empty; skipping";
             }
-
-            QJsonObject sender = object.value(QLatin1String("from")).toObject();
-            QJsonObject receiver = object.value(QLatin1String("to")).toObject();
-            QJsonObject application = object.value(QLatin1String("application")).toObject();
-            QJsonObject notificationObject = object.value(QLatin1String("object")).toObject();
-
-            m_db.addGithubNotification(object.value(QLatin1String("id")).toString(),
-                                         sender.value(QLatin1String("id")).toString(),
-                                         receiver.value(QLatin1String("id")).toString(),
-                                         createdTime,
-                                         updatedTime,
-                                         object.value(QLatin1String("title")).toString(),
-                                         object.value(QLatin1String("link")).toString(),
-                                         application.value(QLatin1String("id")).toString(),
-                                         notificationObject.value(QLatin1String("id")).toString(),
-                                         object.value(QLatin1String("unread")).toDouble() != 0,
-                                         accountId,
-                                         clientId());
-
-            if (!seenOldNotification) {
-                needNextPage = true;
-            }
-        }
-
-        if (needNextPage && parsed.contains(QLatin1String("paging"))) {
-            // we don't actually request the next page of results
-            // since the sync schedule has such a small interval,
-            // 30 notifications at a time should be plenty,
-            // and we want to avoid performing spurious network activity.
-            Q_UNUSED(accessToken)
-            /*
-            QString nextPage = parsed.value(QLatin1String("paging")).toObject().value(QLatin1String("next")).toString();
-            QUrl nextPageUrl(nextPage);
-
-            // instead of doing this, we could just pass the nextPageUrl directly to the requestNotifications function
-            QUrlQuery npuQuery(nextPageUrl.query());
-            QString until = npuQuery.queryItemValue(QStringLiteral("until"));
-            QString pagingToken = npuQuery.queryItemValue(QStringLiteral("__paging_token"));
-
-            if (!nextPage.isEmpty() && !until.isEmpty() && !pagingToken.isEmpty()) {
-                SOCIALD_LOG_DEBUG("another page of notifications exists for account" << accountId << ":" << nextPage);
-                requestNotifications(accountId, accessToken, until, pagingToken);
-            }
-            */
         }
     } else {
         // error occurred during request.
-        qCWarning(lcSocialPlugin) << "unable to parse notification data from request with account" << accountId <<
-                          "got:" << QString::fromLatin1(replyData.constData());
+        qCWarning(lcSocialPlugin) << "error: unable to parse notification data from request with account:" << accountId <<
+                          "got:" << QString::fromUtf8(replyData);
     }
 
-    // we're finished this request.  Decrement our busy semaphore.
-    decrementSemaphore(accountId);
 }
 
 QDateTime GithubNotificationSyncAdaptor::lastSuccessfulSyncTime(int accountId)
