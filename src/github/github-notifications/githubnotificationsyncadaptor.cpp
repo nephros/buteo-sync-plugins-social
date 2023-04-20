@@ -28,7 +28,6 @@
 #include <QUrlQuery>
 #include <QDebug>
 
-static const int OLD_NOTIFICATION_LIMIT_IN_DAYS = 21;
 static const int NOTIFICATIONS_LIMIT = 30;
 
 GithubNotificationSyncAdaptor::GithubNotificationSyncAdaptor(QObject *parent)
@@ -64,7 +63,6 @@ void GithubNotificationSyncAdaptor::finalize(int accountId)
     if (syncAborted()) {
         qCDebug(lcSocialPlugin) << "sync aborted, skipping finalize of VK Notifications from account:" << accountId;
     } else {
-        m_db.purgeOldNotifications(OLD_NOTIFICATION_LIMIT_IN_DAYS);
 
         m_db.sync();
         m_db.wait();
@@ -136,8 +134,10 @@ void GithubNotificationSyncAdaptor::finishedHandler()
             QJsonObject object = entry.toObject();
             if (!object.isEmpty()) {
                 QJsonObject r    = object.value(QStringLiteral("repository")).toObject();
-                QString from     = r.value(QStringLiteral("owner")).toString();
+                QString from     = r.value(QStringLiteral("full_name")).toString();
                 QString repo     = r.value(QStringLiteral("name")).toString();
+                QJsonObject ow   = r.value(QStringLiteral("owner")).toObject();
+                QString avatar   = ow.value(QStringLiteral("avatar_url")).toString();
                 //QString node_id  = r.value(QStringLiteral("id")).toString();
 
                 QJsonObject subj = object.value(QStringLiteral("subject")).toObject();
