@@ -135,7 +135,34 @@ void GithubNotificationSyncAdaptor::finishedHandler()
         foreach (const QJsonValue &entry, data) {
             QJsonObject object = entry.toObject();
             if (!object.isEmpty()) {
-                m_notificationsToAdd.append(NotificationData(accountId, object, profileValues));
+                QJsonObject repo = object.value(QStringLiteral("repository")).toObject();
+                QString from = repo.value(QStringLiteral("full_name")).toString();
+                QString node_id = repo.value(QStringLiteral("id")).toString();
+
+                QJsonObject subj = object.value(QStringLiteral("subject")).toObject();
+                QString title = subj.value(QStringLiteral("title")).toString();
+                QString url   = subj.value(QStringLiteral("url")).toString();
+                QString type  = subj.value(QStringLiteral("type")).toString();
+
+                QString reason = object.value(QStringLiteral("reason")).toString();
+                QDateTime updated = QDateTime::fromString(object.value(QStringLiteral("updated_at")).toString(), Qt::ISODate);
+                bool unread    = object.value(QStringLiteral("unread")).toBool();
+                qCDebug(lcSocialPluginTrace) << "adding Github notification:" << type;
+                //QJsonObject notification;
+                QString strFromObj = QJsonDocument(object).toJson(QJsonDocument::Compact);
+
+                /*
+                  void addGithubNotification(const QString &githubId, const QString &from, const QString &to,
+                          const QDateTime &createdTime, const QDateTime &updatedTime,
+                          const QString &title, const QString &link,
+                          const QString &application, const QString &object,
+                          bool unread, int accountId, const QString &clientId);
+                */
+                m_db.addGithubNotification(accountId, from, from,
+                                           updated, updated,
+                                           title, url,
+                                           type, strFromObj,
+                                           unread, accountId, node_id );
             } else {
                 qCDebug(lcSocialPlugin) << "notification object empty; skipping";
             }

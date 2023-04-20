@@ -56,16 +56,14 @@ private Q_SLOTS:
     void finishedHandler();
 
 private:
-    void saveGithubNotificationFromObject(int accountId, const QJsonObject &notif);
+    //void saveGithubNotificationFromObject(int accountId, const QJsonObject &notif);
     struct NotificationData {
         NotificationData() : accountId(0) {}
-        NotificationData(int accountId, const QJsonObject &notification, const QJsonArray &profiles)
-            : accountId(accountId), notification(notification), profiles(profiles) {}
+        NotificationData(int accountId, const QJsonObject &notification)
+            : accountId(accountId), notification(notification) {}
         int accountId;
         QJsonObject notification;
-        QJsonArray profiles;
     };
-    QList<NotificationData> m_notificationsToAdd;
     GithubNotificationsDatabase m_db;
 };
 
