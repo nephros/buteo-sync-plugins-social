@@ -73,47 +73,53 @@ void GithubDataTypeSyncAdaptor::sync(const QString &dataTypeString, int accountI
 
 void GithubDataTypeSyncAdaptor::updateDataForAccount(int accountId)
 {
-    Accounts::Account *account = Accounts::Account::fromId(m_accountManager, accountId, this);
-    if (!account) {
-        qCWarning(lcSocialPlugin) << "existing account with id" << accountId << "couldn't be retrieved";
-        setStatus(SocialNetworkSyncAdaptor::Error);
-        decrementSemaphore(accountId);
-        return;
-    }
+        Accounts::Account *account = Accounts::Account::fromId(m_accountManager, accountId, this);
+        if (!account) {
+                qCWarning(lcSocialPlugin) << "existing account with id" << accountId << "couldn't be retrieved";
+                setStatus(SocialNetworkSyncAdaptor::Error);
+                decrementSemaphore(accountId);
+                return;
+        }
 
-    // will be decremented by either signOnError or signOnResponse.
-    incrementSemaphore(accountId);
-    signIn(account);
+        // will be decremented by either signOnError or signOnResponse.
+        incrementSemaphore(accountId);
+        signIn(account);
 }
 
 
 void GithubDataTypeSyncAdaptor::errorHandler(QNetworkReply::NetworkError err)
 {
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
-    QByteArray replyData = reply->readAll();
-    int accountId = reply->property("accountId").toInt();
+        QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+        QByteArray replyData = reply->readAll();
+        int accountId = reply->property("accountId").toInt();
+        QString accessToken = reply->property("accessToken").toString();
 
-    qCWarning(lcSocialPlugin) << SocialNetworkSyncAdaptor::dataTypeName(m_dataType) <<
-                      "request with account" << accountId <<
-                      "experienced error:" << err <<
-                      "HTTP:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qCWarning(lcSocialPlugin) << SocialNetworkSyncAdaptor::dataTypeName(m_dataType) <<
+                "request with account" << accountId <<
+                "experienced error:" << err <<
+                "HTTP:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     // set "isError" on the reply so that adapters know to ignore the result in the finished() handler
     reply->setProperty("isError", QVariant::fromValue<bool>(true));
     // Note: not all errors are "unrecoverable" errors, so we don't change the status here.
 
     bool ok = false;
     QJsonObject parsed = parseJsonObjectReplyData(replyData, &ok);
-    if (ok && parsed.contains(QLatin1String("error"))) {
-        QJsonObject errorReply = parsed.value("error").toObject();
-        // Password Changed on server side
-        if (errorReply.value("code").toDouble() == 190 &&
-                errorReply.value("error_subcode").toDouble() == 460) {
-            int accountId = reply->property("accountId").toInt();
-            Accounts::Account *account = Accounts::Account::fromId(m_accountManager, accountId, this);
-            if (account) {
-                setCredentialsNeedUpdate(account);
-            }
-        }
+    if (ok && parsed.contains(QLatin1String("message"))) {
+        // FIXME: deal with errors correctly:
+        // ... actually we might want to use HTTP status instead of parsing the response...
+
+        QString errorMessage = parsed.value("message").toString();
+        qCWarning(lcSocialPlugin) << SocialNetworkSyncAdaptor::dataTypeName(m_dataType) << "reply message was: " << errorMessage ;
+        //QJsonObject errorReply = parsed.value("message").toObject();
+        //// Password Changed on server side
+        //if (errorReply.value("code").toDouble() == 190 &&
+        //        errorReply.value("error_subcode").toDouble() == 460) {
+        //    int accountId = reply->property("accountId").toInt();
+        //    Accounts::Account *account = Accounts::Account::fromId(m_accountManager, accountId, this);
+        //    if (account) {
+        //        setCredentialsNeedUpdate(account);
+        //    }
+        //}
     }
 }
 

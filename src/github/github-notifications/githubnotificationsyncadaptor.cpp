@@ -61,7 +61,7 @@ void GithubNotificationSyncAdaptor::finalize(int accountId)
 {
     Q_UNUSED(accountId);
     if (syncAborted()) {
-        qCDebug(lcSocialPlugin) << "sync aborted, skipping finalize of VK Notifications from account:" << accountId;
+        qCDebug(lcSocialPlugin) << "sync aborted, skipping finalize of Github Notifications from account:" << accountId;
     } else {
 
         m_db.sync();
@@ -78,9 +78,6 @@ void GithubNotificationSyncAdaptor::requestNotifications(int accountId, const QS
     Q_UNUSED(pagingToken);
 
     QList<QPair<QString, QString> > queryItems;
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("access_token")), accessToken));
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("X-GitHub-Api-Version")), QStringLiteral("2022-11-28"))); // API version
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("accept")), QString(QLatin1String("application/vnd.github+json"))));
     //queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("false"))));
     queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("true"))));
     queryItems.append(QPair<QString, QString>(QString(QLatin1String("participating")), QString(QLatin1String("true"))));
@@ -93,11 +90,19 @@ void GithubNotificationSyncAdaptor::requestNotifications(int accountId, const QS
     }
     queryItems.append(QPair<QString, QString>(QString(QLatin1String("since")), QString::number(since.toTime_t())));
 
-    QUrl url(QStringLiteral("https://api.github.com/notifications")); // NOTE: According to https://github.com/orgs/community/discussions/13056, not in GraphQL (yet)
+    QUrl url(QStringLiteral("https://api.github.com/notifications"));
     QUrlQuery query(url);
     query.setQueryItems(queryItems);
     url.setQuery(query);
-    QNetworkReply *reply = m_networkAccessManager->get(QNetworkRequest(url));
+
+    QNetworkRequest request = QNetworkRequest(url);
+    request.setRawHeader(QString(QLatin1String("Accept")).toUtf8(),
+                    QString(QLatin1String("application/vnd.github+json")).toUtf8());
+    request.setRawHeader(QString(QLatin1String("X-GitHub-Api-Version")).toUtf8(),
+                    QString(QLatin1String("2022-11-28")).toUtf8());
+    request.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
+                    QString(QLatin1String("Bearer ")).toUtf8() + accessToken.toUtf8());
+    QNetworkReply *reply = m_networkAccessManager->get(request);
 
     if (reply) {
         reply->setProperty("accountId", accountId);
