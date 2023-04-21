@@ -42,7 +42,7 @@ GithubNotificationSyncAdaptor::~GithubNotificationSyncAdaptor()
 
 QString GithubNotificationSyncAdaptor::syncServiceName() const
 {
-    return QStringLiteral("github-microblog");
+    return QStringLiteral("github-posts");
 }
 
 void GithubNotificationSyncAdaptor::purgeDataForOldAccount(int oldId, SocialNetworkSyncAdaptor::PurgeMode)
