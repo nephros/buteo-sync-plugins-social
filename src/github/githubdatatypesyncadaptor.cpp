@@ -134,26 +134,50 @@ void GithubDataTypeSyncAdaptor::sslErrorsHandler(const QList<QSslError> &errs)
     // Note: not all errors are "unrecoverable" errors, so we don't change the status here.
 }
 
+
 QString GithubDataTypeSyncAdaptor::clientId()
 {
     if (!m_triedLoading) {
-        loadClientId();
+        loadClientIdAndSecret();
     }
     return m_clientId;
 }
 
-void GithubDataTypeSyncAdaptor::loadClientId()
+QString GithubDataTypeSyncAdaptor::clientSecret()
+{
+    if (!m_triedLoading) {
+        loadClientIdAndSecret();
+    }
+    return m_clientSecret;
+}
+
+void GithubDataTypeSyncAdaptor::loadClientIdAndSecret()
 {
     m_triedLoading = true;
     char *cClientId = NULL;
+    char *cClientSecret = NULL;
+
     int cSuccess = SailfishKeyProvider_storedKey("github", "github-sync", "client_id", &cClientId);
-    if (cSuccess != 0 || cClientId == NULL) {
+    if (cClientId == NULL) {
+        return;
+    } else if (cSuccess != 0) {
+        free(cClientId);
         return;
     }
 
     m_clientId = QLatin1String(cClientId);
     free(cClientId);
-    return;
+
+    cSuccess = SailfishKeyProvider_storedKey("github", "github-sync", "client_secret", &cClientSecret);
+    if (cClientSecret == NULL) {
+        return;
+    } else if (cSuccess != 0) {
+        free(cClientSecret);
+        return;
+    }
+
+    m_clientSecret = QLatin1String(cClientSecret);
+    free(cClientSecret);
 }
 
 void GithubDataTypeSyncAdaptor::setCredentialsNeedUpdate(Accounts::Account *account)
@@ -171,7 +195,7 @@ void GithubDataTypeSyncAdaptor::signIn(Accounts::Account *account)
 {
     // Fetch clientId from keyprovider
     int accountId = account->id();
-    if (!checkAccount(account) || clientId().isEmpty()) {
+    if (!checkAccount(account) || clientId().isEmpty() || clientSecret().isEmpty()) {
         decrementSemaphore(accountId);
         return;
     }
@@ -199,6 +223,7 @@ void GithubDataTypeSyncAdaptor::signIn(Accounts::Account *account)
 
     QVariantMap signonSessionData = accSrv.authData().parameters();
     signonSessionData.insert("ClientId", clientId());
+    signonSessionData.insert("ClientSecret", clientSecret());
     signonSessionData.insert("UiPolicy", SignOn::NoUserInteractionPolicy);
 
     connect(session, SIGNAL(response(SignOn::SessionData)),

@@ -54,6 +54,7 @@ public:
 
 protected:
     QString clientId();
+    QString clientSecret();
     virtual void updateDataForAccount(int accountId);
     virtual void beginSync(int accountId, const QString &accessToken) = 0;
 
@@ -66,11 +67,12 @@ private Q_SLOTS:
     void signOnResponse(const SignOn::SessionData &responseData);
 
 private:
-    void loadClientId();
+    void loadClientIdAndSecret();
     void setCredentialsNeedUpdate(Accounts::Account *account);
     void signIn(Accounts::Account *account);
     bool m_triedLoading; // Is true if we tried to load (even if we failed)
     QString m_clientId;
+    QString m_clientSecret;
 };
 
 #endif // GITHUBDATATYPESYNCADAPTOR_H
