@@ -179,8 +179,8 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                 qCDebug(lcSocialPlugin) << "notification object empty; skipping";
             }
         }
-        m_db.sync()
-        m_db.wait()
+        m_db.sync();
+        m_db.wait();
     } else {
         // error occurred during request.
         qCWarning(lcSocialPlugin) << "error: unable to parse notification data from request with account:" << accountId <<
