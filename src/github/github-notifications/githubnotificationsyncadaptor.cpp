@@ -157,9 +157,16 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                 //bool unread    = object.value(QStringLiteral("unread")).toBool();
                 QDateTime updated = QDateTime::fromString(object.value(QStringLiteral("updated_at")).toString(), Qt::ISODate);
 
-                qCDebug(lcSocialPluginTrace) << "adding Github notification:" << type;
                 //QJsonObject notification;
                 //QString strFromObj = QLatin1String(QJsonDocument(object).toJson(QJsonDocument::Compact));
+
+                qCDebug(lcSocialPluginTrace) << "adding Github notification:" << accountId
+                                             << type
+                                             << from
+                                             << repo
+                                             << avatar
+                                             << url
+                                             << updated;
 
                 m_db.addGithubNotification(accountId,
                                            type,
