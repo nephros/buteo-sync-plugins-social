@@ -89,9 +89,9 @@ void GithubNotificationSyncAdaptor::requestNotifications(int accountId, const QS
             since = QDateTime::currentDateTime().addDays(-1 * sinceSpan).toUTC();
     }
     //FIXME: format not accepted upstream...
-    QString sincestr = QString(QLatin1String(since.toString(Qt::ISODate)));
+    QString sincestr = since.toString(Qt::ISODate);
     qCInfo(lcSocialPlugin) << "setting since to" << sincestr;
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("since")), QString(QLatin1String(since.toString(Qt::ISODate)))));
+    queryItems.append(QPair<QString, QString>(QString(QLatin1String("since")), sincestr));
 
     QUrl url(QStringLiteral("https://api.github.com/notifications"));
     QUrlQuery query(url);
