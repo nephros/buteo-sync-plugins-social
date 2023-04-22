@@ -163,6 +163,7 @@ void GithubNotificationSyncAdaptor::finishedHandler()
 
                 qCDebug(lcSocialPluginTrace) << "adding Github notification:" << accountId
                                              << type
+                                             << title
                                              << from
                                              << repo
                                              << avatar
@@ -171,6 +172,7 @@ void GithubNotificationSyncAdaptor::finishedHandler()
 
                 m_db.addGithubNotification(accountId,
                                            type,
+                                           title,
                                            from,
                                            repo,
                                            avatar,
