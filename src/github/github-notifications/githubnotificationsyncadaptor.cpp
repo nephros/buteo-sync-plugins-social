@@ -142,6 +142,7 @@ void GithubNotificationSyncAdaptor::finishedHandler()
         foreach (const QJsonValue &entry, data) {
             QJsonObject object = entry.toObject();
             if (!object.isEmpty()) {
+                QString tid      = object.value(QStringLiteral("id")).toString();
                 QJsonObject r    = object.value(QStringLiteral("repository")).toObject();
                 QString from     = r.value(QStringLiteral("full_name")).toString();
                 QString repo     = r.value(QStringLiteral("name")).toString();
@@ -162,6 +163,7 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                 //QString strFromObj = QLatin1String(QJsonDocument(object).toJson(QJsonDocument::Compact));
 
                 qCDebug(lcSocialPluginTrace) << "adding Github notification:" << accountId
+                                             << tid
                                              << type
                                              << title
                                              << from
@@ -173,6 +175,7 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                                              << updated;
 
                 m_db.addGithubNotification(accountId,
+                                           tid,
                                            type,
                                            title,
                                            from,
