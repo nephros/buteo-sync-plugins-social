@@ -154,8 +154,8 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                 QString url      = subj.value(QStringLiteral("url")).toString();
                 QString type     = subj.value(QStringLiteral("type")).toString();
 
-                //QString reason = object.value(QStringLiteral("reason")).toString();
-                //bool unread    = object.value(QStringLiteral("unread")).toBool();
+                QString reason = object.value(QStringLiteral("reason")).toString();
+                bool unread    = object.value(QStringLiteral("unread")).toBool();
                 QDateTime updated = QDateTime::fromString(object.value(QStringLiteral("updated_at")).toString(), Qt::ISODate);
 
                 //QJsonObject notification;
@@ -165,6 +165,8 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                                              << type
                                              << title
                                              << from
+                                             << reason
+                                             << unread
                                              << repo
                                              << avatar
                                              << url
@@ -174,6 +176,8 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                                            type,
                                            title,
                                            from,
+                                           reason,
+                                           unread,
                                            repo,
                                            avatar,
                                            url,
