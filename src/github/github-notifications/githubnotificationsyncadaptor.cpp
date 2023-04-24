@@ -142,7 +142,7 @@ void GithubNotificationSyncAdaptor::finishedHandler()
         foreach (const QJsonValue &entry, data) {
             QJsonObject object = entry.toObject();
             if (!object.isEmpty()) {
-               // NB: the spec has this as a string! Also, conversion from JSON->String->UInt is very finicky.
+                // NB: the spec has this as a string! Also, conversion from JSON->String->UInt is very finicky.
                 quint32 tid      = object.value(QStringLiteral("id")).toString().toULong();
                 if (tid == 0) {
                         qCWarning(lcSocialPlugin) << "Error: id is zero, (wither not a number or conversion failed) skipping entry.";
@@ -151,14 +151,23 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                 // repo data:
                 QJsonObject r    = object.value(QStringLiteral("repository")).toObject();
                 QString from     = r.value(QStringLiteral("full_name")).toString();
-                QString repo     = r.value(QStringLiteral("name")).toString();
+                QString repo     = QLatin1String(QJsonDocument(r).toJson(QJsonDocument::Compact)); // full metadata
+                // Owner data
                 QJsonObject ow   = r.value(QStringLiteral("owner")).toObject();
                 QString avatar   = ow.value(QStringLiteral("avatar_url")).toString();
 
+                // subject/message
                 QJsonObject subj = object.value(QStringLiteral("subject")).toObject();
                 QString title    = subj.value(QStringLiteral("title")).toString();
-                QString url      = subj.value(QStringLiteral("url")).toString();
                 QString type     = subj.value(QStringLiteral("type")).toString();
+                // which URL to use?
+                // we have:
+                //  - .url --> go to notification thread
+                //  - .subject.url --> go to subject, e.g. URL of an issue
+                //  - .subject.latest_comment_url --> at least for issues...
+                //  - .repository.url --> URL of repo which "sent" this notification
+                //  - .repository.owner.html_url --> URL of user who "sent" this notification
+                QString url      = subj.value(QStringLiteral("url")).toString();
 
                 QString reason = object.value(QStringLiteral("reason")).toString();
                 bool unread    = object.value(QStringLiteral("unread")).toBool();
