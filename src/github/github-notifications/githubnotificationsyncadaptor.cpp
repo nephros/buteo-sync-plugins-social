@@ -142,7 +142,8 @@ void GithubNotificationSyncAdaptor::finishedHandler()
         foreach (const QJsonValue &entry, data) {
             QJsonObject object = entry.toObject();
             if (!object.isEmpty()) {
-                QString tid      = object.value(QStringLiteral("id")).toString();
+               // NB: the spec has this as a string!
+                quint32 tid      = object.value(QStringLiteral("id")).toString().toUInt();
                 QJsonObject r    = object.value(QStringLiteral("repository")).toObject();
                 QString from     = r.value(QStringLiteral("full_name")).toString();
                 QString repo     = r.value(QStringLiteral("name")).toString();
