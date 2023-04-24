@@ -142,14 +142,18 @@ void GithubNotificationSyncAdaptor::finishedHandler()
         foreach (const QJsonValue &entry, data) {
             QJsonObject object = entry.toObject();
             if (!object.isEmpty()) {
-               // NB: the spec has this as a string!
-                quint32 tid      = object.value(QStringLiteral("id")).toString().toUInt();
+               // NB: the spec has this as a string! Also, conversion from JSON->String->UInt is very finicky.
+                quint32 tid      = object.value(QStringLiteral("id")).toString().toULong();
+                if (tid == 0) {
+                        qCWarning(lcSocialPlugin) << "Error: id is zero, (wither not a number or conversion failed) skipping entry.";
+                        continue;
+                }
+                // repo data:
                 QJsonObject r    = object.value(QStringLiteral("repository")).toObject();
                 QString from     = r.value(QStringLiteral("full_name")).toString();
                 QString repo     = r.value(QStringLiteral("name")).toString();
                 QJsonObject ow   = r.value(QStringLiteral("owner")).toObject();
                 QString avatar   = ow.value(QStringLiteral("avatar_url")).toString();
-                //QString node_id  = r.value(QStringLiteral("id")).toString();
 
                 QJsonObject subj = object.value(QStringLiteral("subject")).toObject();
                 QString title    = subj.value(QStringLiteral("title")).toString();
@@ -160,20 +164,7 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                 bool unread    = object.value(QStringLiteral("unread")).toBool();
                 QDateTime updated = QDateTime::fromString(object.value(QStringLiteral("updated_at")).toString(), Qt::ISODate);
 
-                //QJsonObject notification;
-                //QString strFromObj = QLatin1String(QJsonDocument(object).toJson(QJsonDocument::Compact));
-
-                qCDebug(lcSocialPluginTrace) << "adding Github notification:" << accountId
-                                             << tid
-                                             << type
-                                             << title
-                                             << from
-                                             << reason
-                                             << unread
-                                             << repo
-                                             << avatar
-                                             << url
-                                             << updated;
+                qCDebug(lcSocialPluginTrace) << "Adding Github notification:" << accountId << tid << from << title;
 
                 m_db.addGithubNotification(accountId,
                                            tid,
