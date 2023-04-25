@@ -46,7 +46,9 @@ Summary:    Provides synchronisation with GitHub
 #Requires: %%{name} = %%{version}-%%{release}
 #Requires: %%{name} = %%{version}
 # package version in 4.4.0.72:
-Requires: %{name} = 0.4.17-1.14.2.jolla
+#Requires: %%{name} = 0.4.17-1.14.2.jolla
+# package version in 4.5.0.19:
+Requires: %{name} = 0.4.18-1.15.1.jolla
 
 %description github
 %{summary}.
