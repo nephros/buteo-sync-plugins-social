@@ -80,8 +80,10 @@ void GithubNotificationSyncAdaptor::requestNotifications(int accountId, const QS
 
     QList<QPair<QString, QString> > queryItems;
     //queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("false"))));
+    //TODO: make configurable: fetches read messages
     queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("true"))));
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("participating")), QString(QLatin1String("true"))));
+    //FIXME/TODO: make configurable
+    //queryItems.append(QPair<QString, QString>(QString(QLatin1String("participating")), QString(QLatin1String("true"))));
     QDateTime since = lastSuccessfulSyncTime(accountId);
     if (!since.isValid()) {
             int sinceSpan = m_accountSyncProfile
