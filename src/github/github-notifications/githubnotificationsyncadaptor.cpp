@@ -79,11 +79,14 @@ void GithubNotificationSyncAdaptor::requestNotifications(int accountId, const QS
     Q_UNUSED(pagingToken);
 
     QList<QPair<QString, QString> > queryItems;
-    //queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("false"))));
-    //TODO: make configurable: fetches read messages
-    queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("true"))));
-    //FIXME/TODO: make configurable
+    // https://docs.github.com/en/rest/activity/notifications?apiVersion=2022-11-28
+    //TODO: make configurable:
+    // - all fetches read messages
+    // - participating fetches subscriptions only
+    // - per_page default 50
+    //queryItems.append(QPair<QString, QString>(QString(QLatin1String("all")), QString(QLatin1String("true"))));
     //queryItems.append(QPair<QString, QString>(QString(QLatin1String("participating")), QString(QLatin1String("true"))));
+    //queryItems.append(QPair<QString, QString>(QString(QLatin1String("per_page")), QString(QLatin1String("25"))));
     QDateTime since = lastSuccessfulSyncTime(accountId);
     if (!since.isValid()) {
             int sinceSpan = m_accountSyncProfile
