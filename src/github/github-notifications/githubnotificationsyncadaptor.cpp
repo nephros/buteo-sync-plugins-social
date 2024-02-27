@@ -150,7 +150,7 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                 // NB: the spec has this as a string! Also, conversion from JSON->String->UInt is very finicky.
                 quint32 tid      = object.value(QStringLiteral("id")).toString().toULong();
                 if (tid == 0) {
-                        qCWarning(lcSocialPlugin) << "Error: id is zero, (wither not a number or conversion failed) skipping entry.";
+                        qCWarning(lcSocialPlugin) << "Error: id is zero, (either not a number or conversion failed), skipping entry.";
                         continue;
                 }
                 // repo data:
@@ -172,7 +172,15 @@ void GithubNotificationSyncAdaptor::finishedHandler()
                 //  - .subject.latest_comment_url --> at least for issues...
                 //  - .repository.url --> URL of repo which "sent" this notification
                 //  - .repository.owner.html_url --> URL of user who "sent" this notification
-                QString url      = subj.value(QStringLiteral("url")).toString();
+                //
+                // all of those are API urls, not html urls.
+
+                QString url = subj.value(QStringLiteral("latest_comment_url")).toString();
+                if (url.isEmpty()) { // type might not have a latest_comment_url
+                    url = subj.value(QStringLiteral("url")).toString();
+                }
+                // instead of another roundtrip via thread, lets just mangle the URL:
+                url.replace(QStringLiteral("api.github.com/repos/"), QStringLiteral("github.com/"));
 
                 QString reason = object.value(QStringLiteral("reason")).toString();
                 bool unread    = object.value(QStringLiteral("unread")).toBool();
