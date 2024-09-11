@@ -587,43 +587,30 @@ void extractAttendees(const QJsonArray &attendees, KCalendarCore::Event::Ptr eve
     event->clearAttendees();
     for (int i = 0; i < attendees.size(); ++i) {
         QJsonObject attendeeObj = attendees.at(i).toObject();
-        if (!attendeeObj.value(QLatin1String("organizer")).toVariant().toBool()) {
-            KCalendarCore::Attendee attendee(
+        KCalendarCore::Attendee attendee(
                     attendeeObj.value(QLatin1String("displayName")).toVariant().toString(),
                     attendeeObj.value(QLatin1String("email")).toVariant().toString());
-            if (attendeeObj.find(QLatin1String("optional")) != attendeeObj.end()) {
-                if (attendeeObj.value(QLatin1String("optional")).toVariant().toBool()) {
-                    attendee.setRole(KCalendarCore::Attendee::OptParticipant);
-                } else {
-                    attendee.setRole(KCalendarCore::Attendee::ReqParticipant);
-                }
-            }
-            if (attendeeObj.find(QLatin1String("responseStatus")) != attendeeObj.end()) {
-                const QString &responseValue = attendeeObj.value(QLatin1String("responseStatus")).toVariant().toString();
-                if (responseValue == "needsAction") {
-                    attendee.setStatus(KCalendarCore::Attendee::NeedsAction);
-                } else if (responseValue == "accepted") {
-                    attendee.setStatus(KCalendarCore::Attendee::Accepted);
-                } else if (responseValue == "declined") {
-                    attendee.setStatus(KCalendarCore::Attendee::Declined);
-                } else {
-                    attendee.setStatus(KCalendarCore::Attendee::Tentative);
-                }
-            }
-            attendee.setRSVP(true);
-            event->addAttendee(attendee);
-        } else {
-            if (!event->organizer().isEmpty()) {
-                continue;
-            }
-            if (!attendeeObj.value(QLatin1String("displayName")).toVariant().toString().isEmpty()
-                        || !attendeeObj.value(QLatin1String("email")).toVariant().toString().isEmpty()) {
-                KCalendarCore::Person organizer(
-                        attendeeObj.value(QLatin1String("displayName")).toVariant().toString(),
-                        attendeeObj.value(QLatin1String("email")).toVariant().toString());
-                event->setOrganizer(organizer);
+        if (attendeeObj.find(QLatin1String("optional")) != attendeeObj.end()) {
+            if (attendeeObj.value(QLatin1String("optional")).toVariant().toBool()) {
+                attendee.setRole(KCalendarCore::Attendee::OptParticipant);
+            } else {
+                attendee.setRole(KCalendarCore::Attendee::ReqParticipant);
             }
         }
+        if (attendeeObj.find(QLatin1String("responseStatus")) != attendeeObj.end()) {
+            const QString &responseValue = attendeeObj.value(QLatin1String("responseStatus")).toVariant().toString();
+            if (responseValue == "needsAction") {
+                attendee.setStatus(KCalendarCore::Attendee::NeedsAction);
+            } else if (responseValue == "accepted") {
+                attendee.setStatus(KCalendarCore::Attendee::Accepted);
+            } else if (responseValue == "declined") {
+                attendee.setStatus(KCalendarCore::Attendee::Declined);
+            } else {
+                attendee.setStatus(KCalendarCore::Attendee::Tentative);
+            }
+        }
+        attendee.setRSVP(true);
+        event->addAttendee(attendee);
     }
 }
 
@@ -892,6 +879,10 @@ QString toBase32hex(QByteArray bytes)
     return result;
 }
 
+QString percentEnc(const QString &str) {
+    return QString::fromUtf8(QUrl::toPercentEncoding(str));
+}
+
 QString generate_uuid()
 {
     // UUID documentation here:
@@ -1063,9 +1054,14 @@ void GoogleCalendarSyncAdaptor::finalCleanup()
     }
     m_storageNeedsSave = false;
 
-    if (!m_purgeList.isEmpty() && !m_storage->purgeDeletedIncidences(m_purgeList)) {
-        // Silently ignore failed purge action in database.
-        qCWarning(lcSocialPlugin) << "Cannot purge from database the marked as deleted incidences.";
+    if (!m_purgeList.isEmpty()) {
+        for (QMap<QString, KCalendarCore::Incidence::List>::ConstIterator it = m_purgeList.constBegin();
+             it != m_purgeList.constEnd(); it++) {
+            if (!m_storage->purgeDeletedIncidences(it.value(), it.key())) {
+                // Silently ignore failed purge action in database.
+                qCWarning(lcSocialPlugin) << "Cannot purge from database the marked as deleted incidences.";
+            }
+        }
     }
 
     // set the success status for each of our account settings.
@@ -1237,19 +1233,25 @@ void GoogleCalendarSyncAdaptor::calendarsFinishedHandler()
         for (int i = 0; i < items.count(); ++i) {
             QJsonObject currCalendar = items.at(i).toObject();
             if (!currCalendar.isEmpty() && currCalendar.find(QStringLiteral("id")) != currCalendar.end()) {
-                // we only sync calendars which the user owns (ie, not autogenerated calendars)
                 QString accessRole = currCalendar.value(QStringLiteral("accessRole")).toString();
-                if (accessRole == QStringLiteral("owner") || accessRole == QStringLiteral("writer")) {
+                AccessRole access = NoAccess;
+                if (accessRole == QStringLiteral("owner")) {
+                    access = Owner;
+                } else if (accessRole == QStringLiteral("writer")) {
+                    access = Writer;
+                } else if (accessRole == QStringLiteral("reader")) {
+                    access = Reader;
+                } else if (accessRole == QStringLiteral("freeBusyReader")) {
+                    access = FreeBusyReader;
+                }
+
+                if (access != NoAccess) {
                     GoogleCalendarSyncAdaptor::CalendarInfo currCalendarInfo;
                     currCalendarInfo.color = currCalendar.value(QStringLiteral("backgroundColor")).toString();
                     currCalendarInfo.summary = currCalendar.value(QStringLiteral("summary")).toString();
                     currCalendarInfo.description = currCalendar.value(QStringLiteral("description")).toString();
                     currCalendarInfo.change = NoChange; // we detect the appropriate change type (if required) later.
-                    if (accessRole == QStringLiteral("owner")) {
-                        currCalendarInfo.access = Owner;
-                    } else {
-                        currCalendarInfo.access = Writer;
-                    }
+                    currCalendarInfo.access = access;
                     QString currCalendarId = currCalendar.value(QStringLiteral("id")).toString();
                     m_serverCalendarIdToCalendarInfo.insert(currCalendarId, currCalendarInfo);
                 }
@@ -1401,6 +1403,9 @@ void GoogleCalendarSyncAdaptor::requestEvents(const QString &accessToken, const 
     }
 
     QList<QPair<QString, QString> > queryItems;
+    // we don't care about focusTime, outOfOffice or workingLocation
+    queryItems.append(QPair<QString, QString>(QStringLiteral("eventTypes"), QStringLiteral("default")));
+
     if (!needCleanSync) { // delta update request
         queryItems.append(QPair<QString, QString>(QString::fromLatin1("syncToken"), syncToken));
     } else { // clean sync request
@@ -1418,7 +1423,7 @@ void GoogleCalendarSyncAdaptor::requestEvents(const QString &accessToken, const 
         queryItems.append(QPair<QString, QString>(QString::fromLatin1("pageToken"), pageToken));
     }
 
-    QUrl url(QString::fromLatin1("https://www.googleapis.com/calendar/v3/calendars/%1/events").arg(calendarId));
+    QUrl url(QString::fromLatin1("https://www.googleapis.com/calendar/v3/calendars/%1/events").arg(percentEnc(calendarId)));
     QUrlQuery query(url);
     query.setQueryItems(queryItems);
     url.setQuery(query);
@@ -1958,6 +1963,7 @@ QList<GoogleCalendarSyncAdaptor::UpsyncChange> GoogleCalendarSyncAdaptor::determ
             UpsyncChange deletion;
             deletion.accessToken = accessToken;
             deletion.upsyncType = GoogleCalendarSyncAdaptor::Delete;
+            deletion.kcalNotebookId = googleNotebook->uid();
             deletion.kcalEventId = incidenceUid;
             deletion.recurrenceId = recurrenceId;
             deletion.calendarId = calendarId;
@@ -1987,6 +1993,7 @@ QList<GoogleCalendarSyncAdaptor::UpsyncChange> GoogleCalendarSyncAdaptor::determ
                 UpsyncChange modification;
                 modification.accessToken = accessToken;
                 modification.upsyncType = GoogleCalendarSyncAdaptor::Modify;
+                modification.kcalNotebookId = googleNotebook->uid();
                 modification.kcalEventId = event->uid();
                 modification.recurrenceId = event->recurrenceId();
                 modification.calendarId = calendarId;
@@ -2059,6 +2066,7 @@ QList<GoogleCalendarSyncAdaptor::UpsyncChange> GoogleCalendarSyncAdaptor::determ
                     UpsyncChange modification;
                     modification.accessToken = accessToken;
                     modification.upsyncType = GoogleCalendarSyncAdaptor::Modify;
+                    modification.kcalNotebookId = googleNotebook->uid();
                     modification.kcalEventId = event->uid();
                     modification.recurrenceId = event->recurrenceId();
                     modification.calendarId = calendarId;
@@ -2140,6 +2148,7 @@ void GoogleCalendarSyncAdaptor::upsyncChanges(const UpsyncChange &changeToUpsync
 {
     const QString &accessToken = changeToUpsync.accessToken;
     GoogleCalendarSyncAdaptor::ChangeType upsyncType = changeToUpsync.upsyncType;
+    const QString &kcalNotebookId = changeToUpsync.kcalNotebookId;
     const QString &kcalEventId = changeToUpsync.kcalEventId;
     const QDateTime &recurrenceId = changeToUpsync.recurrenceId;
     const QString &calendarId = changeToUpsync.calendarId;
@@ -2147,8 +2156,8 @@ void GoogleCalendarSyncAdaptor::upsyncChanges(const UpsyncChange &changeToUpsync
     const QByteArray &eventData = changeToUpsync.eventData;
 
     QUrl requestUrl = upsyncType == GoogleCalendarSyncAdaptor::Insert
-                    ? QUrl(QString::fromLatin1("https://www.googleapis.com/calendar/v3/calendars/%1/events").arg(calendarId))
-                    : QUrl(QString::fromLatin1("https://www.googleapis.com/calendar/v3/calendars/%1/events/%2").arg(calendarId).arg(eventId));
+                    ? QUrl(QString::fromLatin1("https://www.googleapis.com/calendar/v3/calendars/%1/events").arg(percentEnc(calendarId)))
+                    : QUrl(QString::fromLatin1("https://www.googleapis.com/calendar/v3/calendars/%1/events/%2").arg(percentEnc(calendarId)).arg(eventId));
 
     QNetworkRequest request(requestUrl);
     request.setRawHeader("GData-Version", "3.0");
@@ -2186,6 +2195,7 @@ void GoogleCalendarSyncAdaptor::upsyncChanges(const UpsyncChange &changeToUpsync
         reply->setProperty("accountId", m_accountId);
         reply->setProperty("accessToken", accessToken);
         reply->setProperty("upsyncType", static_cast<int>(upsyncType));
+        reply->setProperty("kcalNotebookId", kcalNotebookId);
         reply->setProperty("kcalEventId", kcalEventId);
         reply->setProperty("recurrenceId", recurrenceId);
         reply->setProperty("calendarId", calendarId);
@@ -2312,6 +2322,7 @@ void GoogleCalendarSyncAdaptor::handleErrorReply(QNetworkReply *reply)
 void GoogleCalendarSyncAdaptor::handleDeleteReply(QNetworkReply *reply)
 {
     Q_ASSERT(reply->property("accountId").toInt() == m_accountId);
+    const QString kcalNotebookId = reply->property("kcalNotebookId").toString();
     QString kcalEventId = reply->property("kcalEventId").toString();
     QString eventId = reply->property("eventId").toString();
     const QByteArray &replyData = reply->readAll();
@@ -2323,7 +2334,12 @@ void GoogleCalendarSyncAdaptor::handleDeleteReply(QNetworkReply *reply)
     if (replyData.isEmpty()) {
         KCalendarCore::Incidence::Ptr incidence = m_deletedGcalIdToIncidence.value(eventId);
         qCDebug(lcSocialPluginTrace) << "Deletion confirmed, purging event: " << kcalEventId;
-        m_purgeList += incidence;
+        const QMap<QString, KCalendarCore::Incidence::List>::Iterator it = m_purgeList.find(kcalNotebookId);
+        if (it == m_purgeList.end()) {
+            m_purgeList.insert(kcalNotebookId, KCalendarCore::Incidence::List() << incidence);
+        } else {
+            it.value().append(incidence);
+        }
     } else {
         // This path should never be taken
         qCWarning(lcSocialPlugin) << "error" << httpCode << "occurred while upsyncing calendar event deletion to Google account" << m_accountId << "; got:";
@@ -2439,7 +2455,7 @@ void GoogleCalendarSyncAdaptor::setCalendarProperties(
         const QString &syncProfile,
         const QString &ownerEmail)
 {
-    notebook->setIsReadOnly(false);
+    notebook->setIsReadOnly(calendarInfo.access == GoogleCalendarSyncAdaptor::Reader || calendarInfo.access == GoogleCalendarSyncAdaptor::FreeBusyReader);
     notebook->setName(calendarInfo.summary);
     notebook->setDescription(calendarInfo.description);
     notebook->setPluginName(QStringLiteral("google"));
@@ -2916,9 +2932,8 @@ QJsonObject GoogleCalendarSyncAdaptor::kCalToJson(KCalendarCore::Event::Ptr even
     QJsonArray attendees;
     const KCalendarCore::Attendee::List attendeesList = event->attendees();
     if (!attendeesList.isEmpty()) {
-        const QString &organizerEmail = event->organizer().email();
         Q_FOREACH (auto att, attendeesList) {
-            if (att.email().isEmpty() || att.email() == organizerEmail) {
+            if (att.email().isEmpty()) {
                 continue;
             }
             QJsonObject attendee;
@@ -3105,7 +3120,7 @@ void GoogleCalendarSyncAdaptor::applySyncFailureFlags()
         KCalendarCore::Event::Ptr event = m_calendar->event(uid);
         if (!event) {
             // Load it if it wasn't already
-            m_storage->loadSeries(uid);
+            m_storage->load(uid);
             event = m_calendar->event(uid);
         }
 
