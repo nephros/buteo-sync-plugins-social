@@ -417,15 +417,7 @@ Summary:    Translation source for sociald
 
 %build
 %qmake5 \
-    "CONFIG+=dropbox" \
-    "CONFIG+=facebook" \
-    "CONFIG+=google" \
-    "CONFIG+=onedrive" \
-    "CONFIG+=twitter" \
-    "CONFIG+=rssfeed" \
-    "CONFIG+=vk" \
-    "CONFIG+=knowncontacts" \
-    "CONFIG+=calendar"
+    "CONFIG+=rssfeed"
 make %{_smp_mflags}
 
 %pre
