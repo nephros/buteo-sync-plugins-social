@@ -164,19 +164,40 @@ Provides: sociald-twitter-posts
 %config %{_sysconfdir}/buteo/profiles/client/twitter-posts.xml
 %config %{_sysconfdir}/buteo/profiles/sync/twitter.Posts.xml
 
-%pre twitter
+
+%package rssfeed
+Summary:    Provides synchronisation with RSS Feeds
+Requires: %{name} = %{version}-%{release}
+#Provides: sociald-rssfeed-notifications
+Provides: sociald-rssfeed-posts
+
+%description rssfeed
+%{summary}.
+
+%files rssfeed
 # notifications
-USERS=$(getent group users | cut -d ":" -f 4 | tr "," "\n")
-for user in $USERS; do
-    USERHOME=$(getent passwd ${user} | cut -d ":" -f 6)
-    rm -f ${USERHOME}/.cache/msyncd/sync/client/twitter-notifications.xml || :
-    rm -f ${USERHOME}/.cache/msyncd/sync/twitter.Notifications.xml || :
-done
+#%%{_libdir}/buteo-plugins-qt5/oopp/libtwitter-notifications-client.so
+#%%config %%{_sysconfdir}/buteo/profiles/client/twitter-notifications.xml
+#%%config %%{_sysconfdir}/buteo/profiles/sync/twitter.Notifications.xml
+#%%{_datadir}/translations/lipstick-jolla-home-twitter-notif_eng_en.qm
+# posts
+%{_libdir}/buteo-plugins-qt5/oopp/librssfeed-posts-client.so
+%config %{_sysconfdir}/buteo/profiles/client/rssfeed-posts.xml
+%config %{_sysconfdir}/buteo/profiles/sync/rssfeed.Posts.xml
+
+%pre rssfeed
+# notifications
+#USERS=$(getent group users | cut -d ":" -f 4 | tr "," "\n")
+#for user in $USERS; do
+#    USERHOME=$(getent passwd ${user} | cut -d ":" -f 6)
+#    rm -f ${USERHOME}/.cache/msyncd/sync/client/twitter-notifications.xml || :
+#    rm -f ${USERHOME}/.cache/msyncd/sync/twitter.Notifications.xml || :
+#done
 # posts
 for user in $USERS; do
     USERHOME=$(getent passwd ${user} | cut -d ":" -f 6)
-    rm -f ${USERHOME}/.cache/msyncd/sync/client/twitter-posts.xml || :
-    rm -f ${USERHOME}/.cache/msyncd/sync/twitter.Posts.xml || :
+    rm -f ${USERHOME}/.cache/msyncd/sync/client/rssfeed-posts.xml || :
+    rm -f ${USERHOME}/.cache/msyncd/sync/rssfeed.Posts.xml || :
 done
 
 %package onedrive
@@ -417,6 +438,7 @@ for user in $USERS; do
     rm -f ${USERHOME}/.cache/msyncd/sync/sociald.facebook.Notifications.xml || :
     rm -f ${USERHOME}/.cache/msyncd/sync/sociald.twitter.Notifications.xml || :
     rm -f ${USERHOME}/.cache/msyncd/sync/sociald.twitter.Posts.xml || :
+    rm -f ${USERHOME}/.cache/msyncd/sync/sociald.rssfeed.Posts.xml || :
     rm -f ${USERHOME}/.cache/msyncd/sync/sociald.google.Calendars.xml || :
     rm -f ${USERHOME}/.cache/msyncd/sync/sociald.google.Contacts.xml || :
 done
