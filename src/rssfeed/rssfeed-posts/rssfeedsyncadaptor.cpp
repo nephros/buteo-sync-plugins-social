@@ -54,7 +54,7 @@ void RSSFeedSyncAdaptor::purgeDataForOldAccount(int oldId, SocialNetworkSyncAdap
 
 QString RSSFeedSyncAdaptor::syncServiceName() const
 {
-    return QStringLiteral("rssfeed-microblog");
+    return QStringLiteral("rssfeed-posts");
 }
 
 void RSSFeedSyncAdaptor::beginSync(int accountId)
