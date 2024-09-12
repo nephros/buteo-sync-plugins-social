@@ -23,10 +23,12 @@
 #include "trace.h"
 
 #include <QtCore/QPair>
-//#include <QtCore/QJsonValue>
-#include <QtCore/QUrlQuery>
 
 #include <QDomDocument>
+#include <QUuid>
+
+// "6ba7b811-9dad-11d1-80b4-00c04fd430c8": UUID namespace UUID for "URL".
+const QByteArray UUID_NS_URL = "{6ba7b811-9dad-11d1-80b4-00c04fd430c8}";
 
 RSSFeedSyncAdaptor::RSSFeedSyncAdaptor(QObject *parent)
     : RSSDataTypeSyncAdaptor(SocialNetworkSyncAdaptor::Posts, parent)
@@ -149,7 +151,7 @@ void RSSFeedSyncAdaptor::finishedPostsHandler()
 
             QString postId = item.firstChildElement(QStringLiteral("guid")).text();
             if (postId.isEmpty())
-                postId = Qt.md5(itemUrl);
+                postId = QUuid::createUuidV5(QUuid(UUID_NS_URL), itemUrl).toString();
 
             // these are the fields we eventually need to fill out:
             QList<QPair<QString, SocialPostImage::ImageType> > imageList;
