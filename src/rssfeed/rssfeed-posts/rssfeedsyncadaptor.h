@@ -34,6 +34,9 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QSslError>
 
+#include <Accounts/Manager>
+#include <Accounts/Account>
+
 #include <socialcache/rssfeedpostsdatabase.h>
 #include <socialcache/socialimagesdatabase.h>
 
@@ -63,7 +66,6 @@ private Q_SLOTS:
 private:
     RSSFeedDatabase m_db;
     SocialImagesDatabase m_imageCacheDb;
-    QMap<int, QString> m_accountProfileImage;
 };
 
 #endif // RSSFEEDSYNCADAPTOR_H

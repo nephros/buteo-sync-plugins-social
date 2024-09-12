@@ -59,7 +59,17 @@ QString RSSFeedSyncAdaptor::syncServiceName() const
 
 void RSSFeedSyncAdaptor::beginSync(int accountId)
 {
-    requestPosts(accountId);
+    QString feedUrl;
+    Accounts::Account *account = Accounts::Account::fromId(m_accountManager, accountId, Q_NULLPTR);
+    if (!account) {
+        qCWarning(lcSocialPlugin) << "unable to load RSS account" << accountId << "to retrieve settings";
+    } else {
+        account->selectService(m_accountManager->service(syncServiceName()));
+        feedUrl = account->valueAsString(QStringLiteral("feedurl"));
+        //feedUrl = account->valueAsString(QStringLiteral("rssfeed.Posts/feedurl"));
+        requestPosts(accountId, feedUrl);
+        account->deleteLater();
+    }
 }
 
 void RSSFeedSyncAdaptor::finalize(int accountId)
