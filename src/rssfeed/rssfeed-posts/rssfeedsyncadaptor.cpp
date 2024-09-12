@@ -38,7 +38,6 @@ RSSFeedSyncAdaptor::~RSSFeedSyncAdaptor()
 {
 }
 
-/*
 void RSSFeedSyncAdaptor::purgeDataForOldAccount(int oldId, SocialNetworkSyncAdaptor::PurgeMode)
 {
     m_db.removePosts(oldId);
@@ -50,7 +49,6 @@ void RSSFeedSyncAdaptor::purgeDataForOldAccount(int oldId, SocialNetworkSyncAdap
     // purge cached images belonging to this account.
     purgeCachedImages(&m_imageCacheDb, oldId);
 }
-*/
 
 QString RSSFeedSyncAdaptor::syncServiceName() const
 {
@@ -80,6 +78,9 @@ void RSSFeedSyncAdaptor::finalize(int accountId)
 
 void RSSFeedSyncAdaptor::requestPosts(int accountId, const QString &feedUrl, const QString &sinceId)
 {
+    //FIXME
+    Q_UNUSED(sinceId);
+
     QUrl url(feedUrl);
     QNetworkRequest nreq(url);
     QNetworkReply *reply = m_networkAccessManager->get(nreq);
@@ -124,45 +125,51 @@ void RSSFeedSyncAdaptor::finishedPostsHandler()
             return;
         }
 
-        QString feedName;
-        QString feedUrl;
-        QString feedDesc;
+        QString feedName, feedUrl, feedDesc, feedIcon;
         if (!chan.isNull()) {
             // the following elements of channel are required:
             feedName = chan.firstChildElement(QStringLiteral("title")).text();
             feedUrl  = chan.firstChildElement(QStringLiteral("link")).text();
             feedDesc = chan.firstChildElement(QStringLiteral("description")).text();
+            feedIcon = chan.firstChildElement(QStringLiteral("image")).firstChildElement(QStringLiteral("url")).text();
         }
 
         m_db.removePosts(accountId); // purge old
 
         for (; !item.isNull(); item = item.nextSiblingElement("item")) {
 
-            // the following elements of item are required:
+            // the following elements of item are required by RSS:
             QString itemName = item.firstChildElement(QStringLiteral("title")).text();
             QString itemUrl  = item.firstChildElement(QStringLiteral("link")).text();
             QString itemDesc = item.firstChildElement(QStringLiteral("description")).text();
 
-            // these are optional, but we want them in the database:
-            QString itemDate = item.firstChildElement(QStringLiteral("pubDate")).text();
+            // these are optional,n RSS items, but we want them in the database:
+            QString itemDateStr = item.firstChildElement(QStringLiteral("pubDate")).text();
+            QDateTime itemDate = QDateTime::fromString(itemDateStr, Qt::RFC2822Date);
+
+            QString postId = item.firstChildElement(QStringLiteral("guid")).text();
+            if (postId.isEmpty())
+                postId = Qt.md5(itemUrl);
 
             // these are the fields we eventually need to fill out:
             QList<QPair<QString, SocialPostImage::ImageType> > imageList;
 
-            // RSS enclosure is for media:
+            // RSS 'enclosure' is for media:
             QDomNodeList mediaList = item.elementsByTagName(QStringLiteral("enclosure"));
             if (!mediaList.isEmpty()) {
                 for (int i = 0; i < mediaList.length(); ++i) {
                     QDomElement mediaElement = mediaList.item(i).toElement();
                     if (mediaElement.isNull() && mediaElement.hasAttribute(QStringLiteral("url"))) {
-                        QString ts = mediaElement.attribute(QStringLiteral("type"));
 
-                        SocialPostImage::ImageType type = SocialPostImage::Invalid;
-                        if (ts.startsWith(QStringLiteral("image"))
-                            type = SocialPostImage::Photo;
-                        if (ts.startsWith(QStringLiteral("video"))
-                            type = SocialPostImage::Video;
-                        imageList.append(qMakePair<QString, SocialPostImage::ImageType>(mediaElement.attribute(QStringLiteral("url")), type));
+                        QString mediaUrl = mediaElement.attribute(QStringLiteral("url"));
+                        QString mediaType = mediaElement.attribute(QStringLiteral("type"));
+
+                        if (!mediaUrl.isEmpty()) {
+                            if (mediaType.startsWith("image"))
+                                imageList.append(qMakePair<QString, SocialPostImage::ImageType>(mediaUrl, SocialPostImage::Photo));
+                            if (mediaType.startsWith("video"))
+                                imageList.append(qMakePair<QString, SocialPostImage::ImageType>(mediaUrl, SocialPostImage::Video));
+                        }
                     }
                 }
             }
@@ -175,7 +182,7 @@ void RSSFeedSyncAdaptor::finishedPostsHandler()
             if (itemDate.daysTo(QDateTime::currentDateTime()) > sinceSpan) {
                 qCDebug(lcSocialPlugin) << "feed for account" << accountId <<
                                   "is more than" << sinceSpan << "days old:" <<
-                                  itemDate.toString(Qt::ISODate) << body;
+                                  itemDate.toString(Qt::ISODate) << itemName;
             } else {
                 // libsocialcache/src/lib/rssfeedpostsdatabase.h:
                 // void addRSSFeedPost(const QString &identifier, const QString &name, const QString &body,
@@ -185,7 +192,9 @@ void RSSFeedSyncAdaptor::finishedPostsHandler()
                 //                        const QString &feedName,
                 //                        int account);
                 //
-                m_db.addRSSFeedPost(postId, itemName, itemDesc, itemDate, icon, imageList,
+                m_db.addRSSFeedPost(postId, itemName, itemDesc,
+                                    itemDate, feedIcon,
+                                    imageList,
                                     feedName, accountId);
             }
         }

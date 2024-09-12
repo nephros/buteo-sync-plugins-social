@@ -48,7 +48,7 @@ public:
     QString syncServiceName() const;
 
 protected:
-    //void purgeDataForOldAccount(int oldId, SocialNetworkSyncAdaptor::PurgeMode mode);
+    void purgeDataForOldAccount(int oldId, SocialNetworkSyncAdaptor::PurgeMode mode);
     void beginSync(int accountId);
     void finalize(int accountId);
 
