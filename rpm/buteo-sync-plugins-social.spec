@@ -422,6 +422,7 @@ Summary:    Translation source for sociald
     "CONFIG+=google" \
     "CONFIG+=onedrive" \
     "CONFIG+=twitter" \
+    "CONFIG+=rssfeed" \
     "CONFIG+=vk" \
     "CONFIG+=knowncontacts" \
     "CONFIG+=calendar"
