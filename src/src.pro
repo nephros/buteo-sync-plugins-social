@@ -20,6 +20,11 @@ CONFIG(twitter): {
     twitter.depends = common
 }
 
+CONFIG(rssfeed): {
+    SUBDIRS += rssfeed
+    rssfeed.depends = common
+}
+
 CONFIG(onedrive): {
     SUBDIRS += onedrive
     onedrive.depends = common
