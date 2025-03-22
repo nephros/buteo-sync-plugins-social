@@ -50,7 +50,9 @@ Summary:    Provides synchronisation with GitHub
 # package version in 4.5.0.19:
 #Requires: %%{name} = 0.4.18-1.15.1.jolla
 # package version in 4.6(0.13)
-Requires: %{name} = 0.4.24-1.17.1.jolla
+#Requires: %{name} = 0.4.24-1.17.1.jolla
+# package version in 5.0(0.62)
+Requires: %{name} = 0.4.27-1.18.2.jolla
 
 %description github
 %{summary}.
