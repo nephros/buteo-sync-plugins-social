@@ -104,7 +104,6 @@ rm -f %{buildroot}%{_libdir}/libsyncpluginscommon.so
 #
 %post
 /sbin/ldconfig || :
-systemctl-user try-restart msyncd.service || :
 
 %postun
 /sbin/ldconfig || :
