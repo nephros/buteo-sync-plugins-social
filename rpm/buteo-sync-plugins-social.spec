@@ -1,6 +1,3 @@
-%bcond_with github
-%define _unpackaged_files_terminate_build 0
-
 Name:       buteo-sync-plugins-social
 Summary:    Sync plugins for social services
 Version:    0.4.0
@@ -47,14 +44,12 @@ Requires: %{name} = %{version}-%{release}
 %description google
 %{summary}.
 
-%if %{with github}
 %package github
 Summary:    Provides synchronisation with GitHub
 Requires: %{name} = 0.4.31-1.21.1.jolla
 
 %description github
 %{summary}.
-%endif
 
 %package twitter
 Summary:    Provides synchronisation with Twitter
@@ -102,10 +97,6 @@ Summary:    Translation source for sociald
 %setup -q -n %{name}-%{version}
 
 %build
-%if %{with github}
-%qmake5 \
-    "CONFIG+=github"
-%else
 %qmake5 \
     "CONFIG+=dropbox" \
     "CONFIG+=facebook" \
@@ -114,22 +105,13 @@ Summary:    Translation source for sociald
     "CONFIG+=twitter" \
     "CONFIG+=vk" \
     "CONFIG+=knowncontacts" \
-    "CONFIG+=calendar"
-%endif
+    "CONFIG+=calendar" \
+    "CONFIG+=github"
 
 %make_build
 
 %install
 %qmake5_install
-
-%if %{with github}
-# delete files from upstream package, we only want the github package
-rm -f %{buildroot}%{_libdir}/buteo-plugins-qt5/oopp/libsociald-client.so
-rm -f %{buildroot}%{_sysconfdir}/buteo/profiles/client/sociald.xml
-rm -f %{buildroot}%{_sysconfdir}/buteo/profiles/sync/sociald.All.xml
-rm -f %{buildroot}%{_libdir}/libsyncpluginscommon.so.*
-rm -f %{buildroot}%{_libdir}/libsyncpluginscommon.so
-%endif
 
 %pre
 USERS=$(getent group users | cut -d ":" -f 4 | tr "," "\n")
@@ -144,10 +126,8 @@ for user in $USERS; do
     rm -f ${USERHOME}/.cache/msyncd/sync/sociald.twitter.Posts.xml || :
     rm -f ${USERHOME}/.cache/msyncd/sync/sociald.google.Calendars.xml || :
     rm -f ${USERHOME}/.cache/msyncd/sync/sociald.google.Contacts.xml || :
-%if %{with github}
     rm -f ${USERHOME}/.cache/msyncd/sync/client/github-nofitications.xml || :
     rm -f ${USERHOME}/.cache/msyncd/sync/github.Notifications.xml || :
-%endif
 done
 
 %pre facebook
@@ -171,14 +151,12 @@ for user in $USERS; do
     rm -f ${USERHOME}/.cache/msyncd/sync/facebook.Signon.xml || :
 done
 
-%if %{with github}
 %pre github
 for user in $USERS; do
     USERHOME=$(getent passwd ${user} | cut -d ":" -f 6)
     rm -f ${USERHOME}/.cache/msyncd/sync/client/github-nofitications.xml || :
     rm -f ${USERHOME}/.cache/msyncd/sync/github.Notifications.xml || :
 done
-%endif
 
 %pre google
 USERS=$(getent group users | cut -d ":" -f 4 | tr "," "\n")
@@ -298,16 +276,12 @@ done
 %postun -p /sbin/ldconfig
 
 %files
-%if %{with github}
-# do not package anything so we can build GH along with upstream
-%else
 %{_libdir}/buteo-plugins-qt5/oopp/libsociald-client.so
 %config %{_sysconfdir}/buteo/profiles/client/sociald.xml
 %config %{_sysconfdir}/buteo/profiles/sync/sociald.All.xml
 %{_libdir}/libsyncpluginscommon.so.*
 %exclude %{_libdir}/libsyncpluginscommon.so
 %license COPYING
-%endif
 
 %files facebook
 # calendar:
@@ -323,13 +297,11 @@ done
 %config %{_sysconfdir}/buteo/profiles/client/facebook-signon.xml
 %config %{_sysconfdir}/buteo/profiles/sync/facebook.Signon.xml
 
-%if %{with github}
 %files github
 %{_libdir}/buteo-plugins-qt5/oopp/libgithub-notifications-client.so
 %config %{_sysconfdir}/buteo/profiles/client/github-notifications.xml
 %config %{_sysconfdir}/buteo/profiles/sync/github.Notifications.xml
 %{_datadir}/lipstick/notificationcategories/x-nemo.social.github.notification.conf
-%endif
 
 %files google
 # calendar
