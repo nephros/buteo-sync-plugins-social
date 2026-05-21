@@ -309,7 +309,6 @@ done
 %endif
 
 %files facebook
-%if %{without github}
 # calendar:
 %{_libdir}/buteo-plugins-qt5/oopp/libfacebook-calendars-client.so
 %config %{_sysconfdir}/buteo/profiles/client/facebook-calendars.xml
@@ -322,7 +321,6 @@ done
 %{_libdir}/buteo-plugins-qt5/oopp/libfacebook-signon-client.so
 %config %{_sysconfdir}/buteo/profiles/client/facebook-signon.xml
 %config %{_sysconfdir}/buteo/profiles/sync/facebook.Signon.xml
-%endif
 
 %if %{with github}
 %files github
