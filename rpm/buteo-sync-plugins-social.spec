@@ -121,6 +121,15 @@ Summary:    Translation source for sociald
 %install
 %qmake5_install
 
+%if %{with github}
+# delete files from upstream package
+rm -f %{buildroot}%{_libdir}/buteo-plugins-qt5/oopp/libsociald-client.so
+rm -f %{buildroot}%{_sysconfdir}/buteo/profiles/client/sociald.xml
+rm -f %{buildroot}%{_sysconfdir}/buteo/profiles/sync/sociald.All.xml
+rm -f %{buildroot}%{_libdir}/libsyncpluginscommon.so.*
+rm -f %{buildroot}%{_libdir}/libsyncpluginscommon.so
+%endif
+
 %pre
 USERS=$(getent group users | cut -d ":" -f 4 | tr "," "\n")
 for user in $USERS; do
@@ -288,12 +297,16 @@ done
 %postun -p /sbin/ldconfig
 
 %files
+%if %{with github}
+# do not package anything so we can build GH along with upstream
+%else
 %{_libdir}/buteo-plugins-qt5/oopp/libsociald-client.so
 %config %{_sysconfdir}/buteo/profiles/client/sociald.xml
 %config %{_sysconfdir}/buteo/profiles/sync/sociald.All.xml
 %{_libdir}/libsyncpluginscommon.so.*
 %exclude %{_libdir}/libsyncpluginscommon.so
 %license COPYING
+%endif
 
 %files facebook
 # calendar:
