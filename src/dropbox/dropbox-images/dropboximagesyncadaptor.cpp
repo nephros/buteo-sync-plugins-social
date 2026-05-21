@@ -35,7 +35,7 @@
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 
-#include <MGConfItem>
+#include <MDConfItem>
 
 // Update the following version if database schema changes e.g. new
 // fields are added to the existing tables.
@@ -47,16 +47,13 @@
 
 namespace {
     bool filenameHasImageExtension(const QString &filename) {
-        if (filename.endsWith(".jpg", Qt::CaseInsensitive)  ||
-            filename.endsWith(".jpeg", Qt::CaseInsensitive) ||
-            filename.endsWith(".png", Qt::CaseInsensitive)  ||
-            filename.endsWith(".tiff", Qt::CaseInsensitive) ||
-            filename.endsWith(".tif", Qt::CaseInsensitive)  ||
-            filename.endsWith(".gif", Qt::CaseInsensitive)  ||
-            filename.endsWith(".bmp", Qt::CaseInsensitive)) {
-            return true;
-        }
-        return false;
+        return (filename.endsWith(".jpg", Qt::CaseInsensitive)
+                || filename.endsWith(".jpeg", Qt::CaseInsensitive)
+                || filename.endsWith(".png", Qt::CaseInsensitive)
+                || filename.endsWith(".tiff", Qt::CaseInsensitive)
+                || filename.endsWith(".tif", Qt::CaseInsensitive)
+                || filename.endsWith(".gif", Qt::CaseInsensitive)
+                || filename.endsWith(".bmp", Qt::CaseInsensitive));
     }
 }
 
@@ -153,8 +150,8 @@ void DropboxImageSyncAdaptor::queryCameraRollCursor(int accountId, const QString
     req.setUrl(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     req.setHeader(QNetworkRequest::ContentLengthHeader, postData.size());
-    req.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
-                     QString(QLatin1String("Bearer ")).toUtf8() + accessToken.toUtf8());
+    req.setRawHeader("Authorization",
+                     QByteArray("Bearer ") + accessToken.toUtf8());
 
     qCDebug(lcSocialPlugin) << "querying camera roll cursor:" << url.toString();
 
@@ -162,9 +159,13 @@ void DropboxImageSyncAdaptor::queryCameraRollCursor(int accountId, const QString
     if (reply) {
         reply->setProperty("accountId", accountId);
         reply->setProperty("accessToken", accessToken);
-        connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(errorHandler(QNetworkReply::NetworkError)));
-        connect(reply, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrorsHandler(QList<QSslError>)));
-        connect(reply, SIGNAL(finished()), this, SLOT(cameraRollCursorFinishedHandler()));
+
+        connect(reply, SIGNAL(error(QNetworkReply::NetworkError)),
+                this, SLOT(errorHandler(QNetworkReply::NetworkError)));
+        connect(reply, SIGNAL(sslErrors(QList<QSslError>)),
+                this, SLOT(sslErrorsHandler(QList<QSslError>)));
+        connect(reply, SIGNAL(finished()),
+                this, SLOT(cameraRollCursorFinishedHandler()));
 
         // we're requesting data.  Increment the semaphore so that we know we're still busy.
         incrementSemaphore(accountId);
@@ -211,8 +212,8 @@ void DropboxImageSyncAdaptor::cameraRollCursorFinishedHandler()
     const DropboxAlbum::ConstPtr &dbAlbum = m_cachedAlbums.value(albumId);
     m_cachedAlbums.remove(albumId); // this album exists, so remove it from the removal detection delta.
     if (!dbAlbum.isNull() && dbAlbum->hash() == cursor) {
-        qCDebug(lcSocialPlugin) << "album with id" << albumId << "by user" << userId <<
-                          "from Dropbox account with id" << accountId << "doesn't need sync";
+        qCDebug(lcSocialPlugin) << "album with id" << albumId << "by user" << userId
+                                << "from Dropbox account with id" << accountId << "doesn't need sync";
         decrementSemaphore(accountId);
         return;
     }
@@ -222,7 +223,8 @@ void DropboxImageSyncAdaptor::cameraRollCursorFinishedHandler()
     decrementSemaphore(accountId);
 }
 
-void DropboxImageSyncAdaptor::queryCameraRoll(int accountId, const QString &accessToken, const QString &albumId, const QString &cursor, const QString &continuationCursor)
+void DropboxImageSyncAdaptor::queryCameraRoll(int accountId, const QString &accessToken, const QString &albumId,
+                                              const QString &cursor, const QString &continuationCursor)
 {
     QJsonObject requestParameters;
     if (continuationCursor.isEmpty()) {
@@ -246,8 +248,8 @@ void DropboxImageSyncAdaptor::queryCameraRoll(int accountId, const QString &acce
     req.setUrl(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     req.setHeader(QNetworkRequest::ContentLengthHeader, postData.size());
-    req.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
-                     QString(QLatin1String("Bearer ")).toUtf8() + accessToken.toUtf8());
+    req.setRawHeader("Authorization",
+                     QByteArray("Bearer ") + accessToken.toUtf8());
 
     qCDebug(lcSocialPlugin) << "querying camera roll:" << url.toString();
 
@@ -257,9 +259,12 @@ void DropboxImageSyncAdaptor::queryCameraRoll(int accountId, const QString &acce
         reply->setProperty("accessToken", accessToken);
         reply->setProperty("albumId", albumId);
         reply->setProperty("cursor", cursor);
-        connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(errorHandler(QNetworkReply::NetworkError)));
-        connect(reply, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrorsHandler(QList<QSslError>)));
-        connect(reply, SIGNAL(finished()), this, SLOT(cameraRollFinishedHandler()));
+        connect(reply, SIGNAL(error(QNetworkReply::NetworkError)),
+                this, SLOT(errorHandler(QNetworkReply::NetworkError)));
+        connect(reply, SIGNAL(sslErrors(QList<QSslError>)),
+                this, SLOT(sslErrorsHandler(QList<QSslError>)));
+        connect(reply, SIGNAL(finished()),
+                this, SLOT(cameraRollFinishedHandler()));
 
         // we're requesting data.  Increment the semaphore so that we know we're still busy.
         incrementSemaphore(accountId);
@@ -378,7 +383,8 @@ void DropboxImageSyncAdaptor::cameraRollFinishedHandler()
             if (haveAlreadyCachedImage(photoId, imageSrcUrl)) {
                 qCDebug(lcSocialPlugin) << "have previously cached photo" << photoId << ":" << imageSrcUrl;
             } else {
-                qCDebug(lcSocialPlugin) << "caching new photo" << photoId << ":" << imageSrcUrl << "->" << imageWidth << "x" << imageHeight;
+                qCDebug(lcSocialPlugin) << "caching new photo" << photoId << ":" << imageSrcUrl
+                                        << "->" << imageWidth << "x" << imageHeight;
                 m_db.addImage(photoId, albumId, userId, createdTime, updatedTime,
                               photoName, imageWidth, imageHeight, thumbnailUrl, imageSrcUrl, accessToken);
             }
@@ -423,8 +429,8 @@ void DropboxImageSyncAdaptor::possiblyAddNewUser(const QString &userId, int acco
     QUrl url(QStringLiteral("%1/2/users/get_current_account").arg(api()));
     QNetworkRequest req;
     req.setUrl(url);
-    req.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
-                     QString(QLatin1String("Bearer ")).toUtf8() + accessToken.toUtf8());
+    req.setRawHeader("Authorization",
+                     QByteArray("Bearer ") + accessToken.toUtf8());
 
     qCDebug(lcSocialPlugin) << "querying Dropbox account info:" << url.toString();
 
@@ -521,11 +527,11 @@ bool DropboxImageSyncAdaptor::determineOptimalDimensions()
 {
     int width = 0, height = 0;
     const int defaultValue = 0;
-    MGConfItem widthConf("/lipstick/screen/primary/width");
+    MDConfItem widthConf("/lipstick/screen/primary/width");
     if (widthConf.value(defaultValue).toInt() != defaultValue) {
         width = widthConf.value(defaultValue).toInt();
     }
-    MGConfItem heightConf("/lipstick/screen/primary/height");
+    MDConfItem heightConf("/lipstick/screen/primary/height");
     if (heightConf.value(defaultValue).toInt() != defaultValue) {
         height = heightConf.value(defaultValue).toInt();
     }
@@ -538,6 +544,7 @@ bool DropboxImageSyncAdaptor::determineOptimalDimensions()
         m_optimalThumbnailWidth = (maxDimension / 2);
     }
     m_optimalImageWidth = maxDimension;
-    qCDebug(lcSocialPlugin) << "Determined optimal image dimension:" << m_optimalImageWidth << ", thumbnail:" << m_optimalThumbnailWidth;
+    qCDebug(lcSocialPlugin) << "Determined optimal image dimension:" << m_optimalImageWidth
+                            << ", thumbnail:" << m_optimalThumbnailWidth;
     return true;
 }

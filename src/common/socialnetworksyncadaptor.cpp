@@ -141,9 +141,8 @@ bool SocialNetworkSyncAdaptor::checkAccount(Accounts::Account *account)
     bool globallyEnabled = account->enabled();
     Accounts::Service srv(m_accountManager->service(syncServiceName()));
     if (!srv.isValid()) {
-        qCInfo(lcSocialPlugin) << "invalid service" << syncServiceName() <<
-                         "specified, account" << account->id() <<
-                         "will be disabled for" << m_serviceName << dataTypeName(m_dataType) << "sync";
+        qCInfo(lcSocialPlugin) << "invalid service" << syncServiceName() << "specified, account" << account->id()
+                               << "will be disabled for" << m_serviceName << dataTypeName(m_dataType) << "sync";
         return false;
     }
     account->selectService(srv);
@@ -265,8 +264,8 @@ void SocialNetworkSyncAdaptor::setInitialActive(bool enabled)
 void SocialNetworkSyncAdaptor::setFinishedInactive()
 {
     finalCleanup();
-    qCInfo(lcSocialPlugin) << "Finished" << m_serviceName << SocialNetworkSyncAdaptor::dataTypeName(m_dataType) <<
-                     "sync at:" << QDateTime::currentDateTime().toString(Qt::ISODate);
+    qCInfo(lcSocialPlugin) << "Finished" << m_serviceName << SocialNetworkSyncAdaptor::dataTypeName(m_dataType)
+                           << "sync at:" << QDateTime::currentDateTime().toString(Qt::ISODate);
     setStatus(SocialNetworkSyncAdaptor::Inactive);
 }
 
@@ -297,7 +296,7 @@ void SocialNetworkSyncAdaptor::decrementSemaphore(int accountId)
     if (semaphoreValue == 0) {
         finalize(accountId);
 
-        // With the newer implementation, in finalize we can rereaise semaphores,
+        // With the newer implementation, in finalize we can raise semaphores,
         // so if after calling finalize, the semaphore count is not the same anymore,
         // we shouldn't update the sync timestamp
         if (m_accountSyncSemaphores.value(accountId) > 0) {
@@ -349,7 +348,7 @@ void SocialNetworkSyncAdaptor::setupReplyTimeout(int accountId, QNetworkReply *r
     timer->setInterval(msecs);
     timer->setProperty("accountId", accountId);
     timer->setProperty("networkReply", QVariant::fromValue<QNetworkReply*>(reply));
-    connect(timer, SIGNAL(timeout()), this, SLOT(timeoutReply()));
+    connect(timer, &QTimer::timeout, this, &SocialNetworkSyncAdaptor::timeoutReply);
     timer->start();
     m_networkReplyTimeouts[accountId].insert(reply, timer);
 }

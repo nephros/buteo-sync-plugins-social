@@ -222,8 +222,8 @@ void VKDataTypeSyncAdaptor::throttleTimerTimeout()
 void VKDataTypeSyncAdaptor::sync(const QString &dataTypeString, int accountId)
 {
     if (dataTypeString != SocialNetworkSyncAdaptor::dataTypeName(m_dataType)) {
-        qCWarning(lcSocialPlugin) << "VK" << SocialNetworkSyncAdaptor::dataTypeName(m_dataType) <<
-                          "sync adaptor was asked to sync" << dataTypeString;
+        qCWarning(lcSocialPlugin) << "VK" << SocialNetworkSyncAdaptor::dataTypeName(m_dataType)
+                                  << "sync adaptor was asked to sync" << dataTypeString;
         setStatus(SocialNetworkSyncAdaptor::Error);
         return;
     }
@@ -261,10 +261,10 @@ void VKDataTypeSyncAdaptor::errorHandler(QNetworkReply::NetworkError err)
     QByteArray replyData = reply->readAll();
     int accountId = reply->property("accountId").toInt();
 
-    qCWarning(lcSocialPlugin) << SocialNetworkSyncAdaptor::dataTypeName(m_dataType) <<
-                      "request with account" << accountId <<
-                      "experienced error:" << err <<
-                      "HTTP:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    qCWarning(lcSocialPlugin) << SocialNetworkSyncAdaptor::dataTypeName(m_dataType)
+                              << "request with account" << accountId
+                              << "experienced error:" << err
+                              << "HTTP:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     // set "isError" on the reply so that adapters know to ignore the result in the finished() handler
     reply->setProperty("isError", QVariant::fromValue<bool>(true));
     // Note: not all errors are "unrecoverable" errors, so we don't change the status here.
@@ -294,9 +294,9 @@ void VKDataTypeSyncAdaptor::sslErrorsHandler(const QList<QSslError> &errs)
     if (errs.size() > 0) {
         sslerrs.chop(2);
     }
-    qCWarning(lcSocialPlugin) << SocialNetworkSyncAdaptor::dataTypeName(m_dataType) <<
-                      "request with account" << sender()->property("accountId").toInt() <<
-                      "experienced ssl errors:" << sslerrs;
+    qCWarning(lcSocialPlugin) << SocialNetworkSyncAdaptor::dataTypeName(m_dataType)
+                              << "request with account" << sender()->property("accountId").toInt()
+                              << "experienced ssl errors:" << sslerrs;
     // set "isError" on the reply so that adapters know to ignore the result in the finished() handler
     sender()->setProperty("isError", QVariant::fromValue<bool>(true));
     // Note: not all errors are "unrecoverable" errors, so we don't change the status here.
@@ -369,11 +369,11 @@ void VKDataTypeSyncAdaptor::signIn(Accounts::Account *account)
     signonSessionData.insert("ClientId", clientId());
     signonSessionData.insert("UiPolicy", SignOn::NoUserInteractionPolicy);
 
-    connect(session, SIGNAL(response(SignOn::SessionData)),
-            this, SLOT(signOnResponse(SignOn::SessionData)),
+    connect(session, &SignOn::AuthSession::response,
+            this, &VKDataTypeSyncAdaptor::signOnResponse,
             Qt::UniqueConnection);
-    connect(session, SIGNAL(error(SignOn::Error)),
-            this, SLOT(signOnError(SignOn::Error)),
+    connect(session, &SignOn::AuthSession::error,
+            this, &VKDataTypeSyncAdaptor::signOnError,
             Qt::UniqueConnection);
 
     session->setProperty("account", QVariant::fromValue<Accounts::Account*>(account));
@@ -387,8 +387,8 @@ void VKDataTypeSyncAdaptor::signOnError(const SignOn::Error &error)
     Accounts::Account *account = session->property("account").value<Accounts::Account*>();
     SignOn::Identity *identity = session->property("identity").value<SignOn::Identity*>();
     int accountId = account->id();
-    qCWarning(lcSocialPlugin) << "credentials for account with id" << accountId <<
-                      "couldn't be retrieved:" << error.type() << "," << error.message();
+    qCWarning(lcSocialPlugin) << "credentials for account with id" << accountId
+                              << "couldn't be retrieved:" << error.type() << "," << error.message();
 
     // if the error is because credentials have expired, we
     // set the CredentialsNeedUpdate key.

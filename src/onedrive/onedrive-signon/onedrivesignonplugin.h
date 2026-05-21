@@ -31,12 +31,12 @@ class Q_DECL_EXPORT OneDriveSignonPlugin : public SocialdButeoPlugin
 
 public:
     OneDriveSignonPlugin(const QString& pluginName,
-                  const Buteo::SyncProfile& profile,
-                  Buteo::PluginCbInterface *cbInterface);
+                         const Buteo::SyncProfile& profile,
+                         Buteo::PluginCbInterface *cbInterface);
     ~OneDriveSignonPlugin();
 
 protected:
-    SocialNetworkSyncAdaptor *createSocialNetworkSyncAdaptor();
+    SocialNetworkSyncAdaptor *createSocialNetworkSyncAdaptor() override;
 };
 
 

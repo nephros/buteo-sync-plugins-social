@@ -31,12 +31,12 @@ class Q_DECL_EXPORT DropboxImagesPlugin : public SocialdButeoPlugin
 
 public:
     DropboxImagesPlugin(const QString& pluginName,
-                  const Buteo::SyncProfile& profile,
-                  Buteo::PluginCbInterface *cbInterface);
+                        const Buteo::SyncProfile& profile,
+                        Buteo::PluginCbInterface *cbInterface);
     ~DropboxImagesPlugin();
 
 protected:
-    SocialNetworkSyncAdaptor *createSocialNetworkSyncAdaptor();
+    SocialNetworkSyncAdaptor *createSocialNetworkSyncAdaptor() override;
 };
 
 class DropboxImagesPluginLoader : public Buteo::SyncPluginLoader

@@ -35,7 +35,7 @@
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 
-#include <MGConfItem>
+#include <MDConfItem>
 
 // Update the following version if database schema changes e.g. new
 // fields are added to the existing tables.
@@ -238,7 +238,8 @@ void FacebookImageSyncAdaptor::albumsFinishedHandler()
         QString createdTimeStr = albumObject.value(QLatin1String("created_time")).toString();
         QString updatedTimeStr = albumObject.value(QLatin1String("updated_time")).toString();
         int imageCount = static_cast<int>(albumObject.value(QLatin1String("count")).toDouble());
-        qCDebug(lcSocialPlugin) << "Got album information:" << userId << albumId << albumName << createdTimeStr << updatedTimeStr << imageCount;
+        qCDebug(lcSocialPlugin) << "Got album information:" << userId << albumId << albumName
+                                << createdTimeStr << updatedTimeStr << imageCount;
 
         // check to see whether we need to sync (any changes since last sync)
         // Note that we also check if the image count is the same, since, when
@@ -250,8 +251,8 @@ void FacebookImageSyncAdaptor::albumsFinishedHandler()
         m_cachedAlbums.remove(fbAlbumId);  // Removal detection
         if (!dbAlbum.isNull() && (dbAlbum->updatedTime() >= updatedTime
                                   && dbAlbum->imageCount() == imageCount)) {
-            qCDebug(lcSocialPlugin) << "album with id" << albumId << "by user" << userId <<
-                              "from Facebook account with id" << accountId << "doesn't need sync";
+            qCDebug(lcSocialPlugin) << "album with id" << albumId << "by user" << userId
+                                    << "from Facebook account with id" << accountId << "doesn't need sync";
             continue;
         }
 
@@ -271,7 +272,8 @@ void FacebookImageSyncAdaptor::albumsFinishedHandler()
     QString nextUrl = paging.value(QLatin1String("next")).toString();
     if (!nextUrl.isEmpty() && nextUrl != continuationUrl) {
         // note: we check equality because fb can return spurious paging data...
-        qCDebug(lcSocialPlugin) << "performing continuation request for more albums for Facebook account with id" << accountId << ":" << nextUrl;
+        qCDebug(lcSocialPlugin) << "performing continuation request for more albums for Facebook account with id"
+                                << accountId << ":" << nextUrl;
         requestData(accountId, accessToken, nextUrl, fbUserId, QString());
     }
 
@@ -528,11 +530,11 @@ bool FacebookImageSyncAdaptor::determineOptimalDimensions()
 {
     int width = 0, height = 0;
     const int defaultValue = 0;
-    MGConfItem widthConf("/lipstick/screen/primary/width");
+    MDConfItem widthConf("/lipstick/screen/primary/width");
     if (widthConf.value(defaultValue).toInt() != defaultValue) {
         width = widthConf.value(defaultValue).toInt();
     }
-    MGConfItem heightConf("/lipstick/screen/primary/height");
+    MDConfItem heightConf("/lipstick/screen/primary/height");
     if (heightConf.value(defaultValue).toInt() != defaultValue) {
         height = heightConf.value(defaultValue).toInt();
     }

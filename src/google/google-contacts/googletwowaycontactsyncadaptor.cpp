@@ -213,7 +213,7 @@ void GoogleContactSqliteSyncAdaptor::syncFinishedWithError()
                           true,
                           &error)) {
         qCWarning(lcSocialPlugin) << "Failed to clear sync token for account:" << q->m_accountId
-                          << "due to error:" << error;
+                                  << "due to error:" << error;
     }
 }
 
@@ -293,7 +293,7 @@ void GoogleTwoWayContactSyncAdaptor::beginSync(int accountId, const QString &acc
     } else {
         loadCollection(m_collection);
         qCDebug(lcSocialPlugin) << "Found MyContacts collection" << m_collection.id()
-                          << "for account:" << accountId;
+                                << "for account:" << accountId;
     }
 
     // Initialize the people.connections.list() parameters
@@ -352,8 +352,8 @@ void GoogleTwoWayContactSyncAdaptor::requestData(
     requestUrl.setQuery(urlQuery);
 
     QNetworkRequest req(requestUrl);
-    req.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
-                     QString(QLatin1String("Bearer ") + m_accessToken).toUtf8());
+    req.setRawHeader("Authorization",
+                     QByteArray("Bearer ") + m_accessToken.toUtf8());
 
     qCDebug(lcSocialPluginTrace) << "requesting" << requestUrl << "with account" << m_accountId;
 
@@ -414,7 +414,7 @@ void GoogleTwoWayContactSyncAdaptor::groupsFinishedHandler()
     }
 
     qCDebug(lcSocialPluginTrace) << "received information about" << response.contactGroups.size()
-                      << "groups for account" << m_accountId;
+                                 << "groups for account" << m_accountId;
 
     GooglePeople::ContactGroup myContactsGroup;
     for (auto it = response.contactGroups.constBegin(); it != response.contactGroups.constEnd(); ++it) {
@@ -536,7 +536,8 @@ void GoogleTwoWayContactSyncAdaptor::contactsFinishedHandler()
             }
             if (m_connectionsListParams.syncToken.isEmpty()) {
                 // This is a fresh sync, so keep the modification.
-                qCDebug(lcSocialPlugin) << "Remote modification for contact:" << guid << "is not spurious, keeping it (this is a fresh sync)";
+                qCDebug(lcSocialPlugin) << "Remote modification for contact:" << guid
+                                        << "is not spurious, keeping it (this is a fresh sync)";
             } else {
                 // This is a delta sync and the modification is spurious, so discard the contact.
                 qCDebug(lcSocialPlugin) << "Disregarding spurious remote modification for contact:" << guid;
@@ -575,15 +576,17 @@ void GoogleTwoWayContactSyncAdaptor::contactsFinishedHandler()
 
     if (!response.nextPageToken.isEmpty()) {
         // request more if they exist.
-        qCDebug(lcSocialPluginTrace) << "more contact sync information is available server-side; performing another request with account" << m_accountId;
+        qCDebug(lcSocialPluginTrace)
+                << "more contact sync information is available server-side; performing another request with account"
+                << m_accountId;
         requestData(ContactRequest, contactChangeNotifier, response.nextPageToken);
     } else {
         // we're finished downloading the remote changes - we should sync local changes up.
-        qCInfo(lcSocialPlugin) << "Google contact sync with account" << m_accountId <<
-                         "got remote changes: A/M/R:"
-                         << m_remoteAdds.count()
-                         << m_remoteMods.count()
-                         << m_remoteDels.count();
+        qCInfo(lcSocialPlugin) << "Google contact sync with account" << m_accountId
+                               << "got remote changes: A/M/R:"
+                               << m_remoteAdds.count()
+                               << m_remoteMods.count()
+                               << m_remoteDels.count();
 
         continueSync(contactChangeNotifier);
     }
@@ -635,7 +638,7 @@ void GoogleTwoWayContactSyncAdaptor::upsyncLocalChanges(const QList<QContact> &l
             alreadyEncoded.insert(guid);
         } else {
             qCInfo(lcSocialPlugin) << "Ignore locally-deleted contact" << c.id()
-                             << ", was not uploaded to server prior to local deletion";
+                                   << ", was not uploaded to server prior to local deletion";
         }
     }
     for (const QContact &c : locallyAdded) {
@@ -690,14 +693,13 @@ void GoogleTwoWayContactSyncAdaptor::upsyncLocalChanges(const QList<QContact> &l
 
     m_batchUpdateIndexes.clear();
 
-    qCInfo(lcSocialPlugin) << "Google account:" << m_accountId <<
-                     "upsyncing local contact A/M/R:"
-                     << m_localAdds.count()  << "/"
-                     << m_localMods.count()  << "/"
+    qCInfo(lcSocialPlugin) << "Google account:" << m_accountId << "upsyncing local contact A/M/R:"
+                     << m_localAdds.count() << "/"
+                     << m_localMods.count() << "/"
                      << m_localDels.count()
                      << "and local avatar A/M/R:"
-                     << m_localAvatarAdds.count()  << "/"
-                     << m_localAvatarMods.count()  << "/"
+                     << m_localAvatarAdds.count() << "/"
+                     << m_localAvatarMods.count() << "/"
                      << m_localAvatarDels.count();
 
     upsyncLocalChangesList();
@@ -780,12 +782,12 @@ void GoogleTwoWayContactSyncAdaptor::storeToRemote(const QByteArray &encodedCont
 {
     QUrl requestUrl(QLatin1String("https://people.googleapis.com/batch"));
     QNetworkRequest req(requestUrl);
-    req.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
+    req.setRawHeader("Authorization",
+                     QByteArray("Bearer ") + m_accessToken.toUtf8());
+    req.setRawHeader("Authorization",
                      QString(QLatin1String("Bearer ") + m_accessToken).toUtf8());
-    req.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
-                     QString(QLatin1String("Bearer ") + m_accessToken).toUtf8());
-    req.setRawHeader(QString(QLatin1String("Content-Type")).toUtf8(),
-                     QString(QLatin1String("multipart/mixed; boundary=\"batch_people\"")).toUtf8());
+    req.setRawHeader("Content-Type",
+                     QByteArray("multipart/mixed; boundary=\"batch_people\""));
     req.setHeader(QNetworkRequest::ContentLengthHeader, encodedContactUpdates.size());
 
     // we're posting data.  Increment the semaphore so that we know we're still busy.
@@ -815,8 +817,8 @@ void GoogleTwoWayContactSyncAdaptor::postFinishedHandler()
     removeReplyTimeout(m_accountId, reply);
 
     if (reply->property("isError").toBool()) {
-        qCWarning(lcSocialPlugin) << "error occurred posting contact data to google with account" << m_accountId << "," <<
-                          "got response:" << QString::fromUtf8(response);
+        qCWarning(lcSocialPlugin) << "error occurred posting contact data to google with account" << m_accountId
+                                  << "," << "got response:" << QString::fromUtf8(response);
         setStatus(SocialNetworkSyncAdaptor::Error);
         decrementSemaphore(m_accountId);
         return;
@@ -996,7 +998,8 @@ bool GoogleTwoWayContactSyncAdaptor::queueAvatarForDownload(const QString &conta
         metadata.insert(IMAGE_DOWNLOADER_TOKEN_KEY, m_accessToken);
         metadata.insert(IMAGE_DOWNLOADER_IDENTIFIER_KEY, contactGuid);
         incrementSemaphore(m_accountId);
-        QMetaObject::invokeMethod(m_workerObject, "queue", Qt::QueuedConnection, Q_ARG(QString, imageUrl), Q_ARG(QVariantMap, metadata));
+        QMetaObject::invokeMethod(m_workerObject, "queue", Qt::QueuedConnection,
+                                  Q_ARG(QString, imageUrl), Q_ARG(QVariantMap, metadata));
 
         return true;
     }

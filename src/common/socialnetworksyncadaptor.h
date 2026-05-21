@@ -32,7 +32,6 @@
 
 #include "buteosyncfw_p.h"
 
-class QSqlDatabase;
 class QNetworkAccessManager;
 class QTimer;
 class QNetworkReply;
@@ -82,7 +81,8 @@ public:
     static QString dataTypeName(DataType t);
 
 public:
-    SocialNetworkSyncAdaptor(const QString &serviceName, SocialNetworkSyncAdaptor::DataType dataType, QNetworkAccessManager *qnam, QObject *parent);
+    SocialNetworkSyncAdaptor(const QString &serviceName, SocialNetworkSyncAdaptor::DataType dataType,
+                             QNetworkAccessManager *qnam, QObject *parent);
     virtual ~SocialNetworkSyncAdaptor();
 
     virtual QString syncServiceName() const = 0;

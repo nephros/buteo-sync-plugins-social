@@ -207,8 +207,8 @@ void OneDriveImageSyncAdaptor::requestResource(int accountId, const QString &acc
                                                         : resourceTarget));
     qCDebug(lcSocialPlugin) << "OneDrive image sync requesting resource:" << url.toString();
     QNetworkRequest req(url);
-    req.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
-                     QString(QLatin1String("Bearer ")).toUtf8() + accessToken.toUtf8());
+    req.setRawHeader("Authorization",
+                     QByteArray("Bearer ") + accessToken.toUtf8());
     QNetworkReply *reply = m_networkAccessManager->get(req);
     if (reply) {
         reply->setProperty("accountId", accountId);
@@ -232,8 +232,8 @@ void OneDriveImageSyncAdaptor::requestNextLink(int accountId, const QString &acc
     qCDebug(lcSocialPlugin) << "OneDrive image sync requesting nextlink resources:" << nextLink;
     QUrl nextLinkUrl(nextLink);
     QNetworkRequest req(nextLinkUrl);
-    req.setRawHeader(QString(QLatin1String("Authorization")).toUtf8(),
-                     QString(QLatin1String("Bearer ")).toUtf8() + accessToken.toUtf8());
+    req.setRawHeader("Authorization",
+                     QByteArray("Bearer ") + accessToken.toUtf8());
     QNetworkReply *reply = m_networkAccessManager->get(req);
     if (reply) {
         reply->setProperty("accountId", accountId);
@@ -343,9 +343,10 @@ void OneDriveImageSyncAdaptor::resourceFinishedHandler()
     const OneDriveAlbum::ConstPtr &dbAlbum = m_cachedAlbums.value(albumId);
     m_cachedAlbums.remove(albumId); // Removal detection
     m_seenAlbums.insert(albumId);
+
     if (!dbAlbum.isNull() && (dbAlbum->updatedTime().toTime_t() >= updatedTime.toTime_t())) {
-        qCDebug(lcSocialPlugin) << "album with id" << albumId << "by user" << m_userId <<
-                          "from OneDrive account with id" << accountId << "doesn't need update";
+        qCDebug(lcSocialPlugin) << "album with id" << albumId << "by user" << m_userId
+                                << "from OneDrive account with id" << accountId << "doesn't need update";
     } else {
         qCDebug(lcSocialPlugin) << "Album:" << albumName << "added or changed on server";
         const AlbumData album(albumId, m_userId, createdTime, updatedTime, albumName, photoCount);
@@ -377,7 +378,7 @@ bool OneDriveImageSyncAdaptor::initRemovalDetectionLists(int accountId)
     clearRemovalDetectionLists();
 
     bool ok = false;
-    QMap<int,QString> accounts = m_db.accounts(&ok);
+    QMap<int, QString> accounts = m_db.accounts(&ok);
     if (!ok) {
         return false;
     }
