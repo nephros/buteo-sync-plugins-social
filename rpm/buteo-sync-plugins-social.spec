@@ -1,5 +1,10 @@
 %bcond_with github
 
+
+%if %{with github}
+%define _missing_doc_files_terminate_build 0
+%endif
+
 Name:       buteo-sync-plugins-social
 Summary:    Sync plugins for social services
 Version:    0.4.0
@@ -122,7 +127,7 @@ Summary:    Translation source for sociald
 %qmake5_install
 
 %if %{with github}
-# delete files from upstream package
+# delete files from upstream package, we only want the github package
 rm -f %{buildroot}%{_libdir}/buteo-plugins-qt5/oopp/libsociald-client.so
 rm -f %{buildroot}%{_sysconfdir}/buteo/profiles/client/sociald.xml
 rm -f %{buildroot}%{_sysconfdir}/buteo/profiles/sync/sociald.All.xml
