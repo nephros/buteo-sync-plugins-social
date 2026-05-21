@@ -1,10 +1,5 @@
 %bcond_with github
-
-
-%if %{with github}
-%define _missing_doc_files_terminate_build 0
 %define _unpackaged_files_terminate_build 0
-%endif
 
 Name:       buteo-sync-plugins-social
 Summary:    Sync plugins for social services
